@@ -15,11 +15,23 @@ def list_network_interfaces():
 
         # Expression régulière pour extraire les interfaces réseau actives
         interfaces = []
-        matches = re.findall(r"^\s*(.*?)\s{2,}.*?Up", output, re.MULTILINE)
+        matches = re.findall(r"^\s*(.*?)\s{2,}.*?Up", output, re.MULTILINE) # Recherche des interfaces actives
 
         # Filtrer les interfaces actives et les ajouter à la liste
         for interface in matches:
             # Nettoyer l'interface et l'ajouter à la liste
             interfaces.append(interface.strip())
-        print(f"Interfaces réseau actives :\n{interfaces}\n")
-print(list_network_interfaces())
+        return interfaces
+
+def choose_network_interface(interfaces):
+    """
+    Permet à l'utilisateur de choisir une interface réseau parmi celles disponibles.
+    """
+    print("\nInterfaces réseau disponibles :")
+    for idx, iface in enumerate(interfaces, start=1):
+        print(f"{idx}. {iface}")
+    choice = int(input("\nEntrez le numéro de l'interface réseau à utiliser : "))
+    if 1 <= choice <= len(interfaces):
+        return interfaces[choice - 1]
+    else:
+       print("Veuillez entrer un numéro valide.")
