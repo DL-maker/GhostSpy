@@ -22,16 +22,3 @@ def list_network_interfaces():
             # Nettoyer l'interface et l'ajouter à la liste
             interfaces.append(interface.strip())
         return interfaces
-
-def choose_network_interface(interfaces):
-    """
-    Permet à l'utilisateur de choisir une interface réseau parmi celles disponibles.
-    """
-    print("\nInterfaces réseau disponibles :")
-    for idx, iface in enumerate(interfaces, start=1):
-        print(f"{idx}. {iface}")
-    choice = int(input("\nEntrez le numéro de l'interface réseau à utiliser : "))
-    if 1 <= choice <= len(interfaces):
-        return interfaces[choice - 1]
-    else:
-       print("Veuillez entrer un numéro valide.")
