@@ -1,6 +1,7 @@
 import os
 import Search_windows_interface
 import Search_linux_interface
+import Scanner_final_puch
 def choose_network_interface(interfaces):
     """
     Permet à l'utilisateur de choisir une interface réseau parmi celles disponibles.
@@ -10,6 +11,7 @@ def choose_network_interface(interfaces):
         print(f"{idx}. {iface}")
     choice = int(input("\nEntrez le numéro de l'interface réseau à utiliser : "))
     if 1 <= choice <= len(interfaces):
+        
         return interfaces[choice - 1]
     else:
        print("Veuillez entrer un numéro valide.")
@@ -17,9 +19,25 @@ def choose_network_interface(interfaces):
 if os.name == 'nt':
     liste = Search_windows_interface.list_network_interfaces()
     print(choose_network_interface(liste))
+  
+
+    
+else:
+
+    liste = Search_linux_interface.list_network_interfaces()
+    active_interface = choose_network_interface(liste)
+    print(f"Votre interface active: {active_interface}")
+    
     """
     >> >  METTRE LES FONCTIONNALITER DE SNIFFING IMPORTER ICI <<<
     """
-else:
-    liste = Search_linux_interface.list_network_interfaces()
-    print(choose_network_interface(liste))
+
+resultat = Scanner_final_puch.get_active_interface()
+interface, ip, masque = resultat
+
+print(f"Votre Adresse Réseau: {Scanner_final_puch.get_network_address()}")
+
+print(f"Votre Adresse IP: {ip}")
+print(f"Votre Masque Réseau: {masque}")
+print(f"Votre MAC Adresse: {Scanner_final_puch.get_mac()}")
+
