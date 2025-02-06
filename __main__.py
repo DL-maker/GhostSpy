@@ -1,6 +1,6 @@
 import os
 import Search_windows_interface
-
+import Search_linux_interface
 def choose_network_interface(interfaces):
     """
     Permet à l'utilisateur de choisir une interface réseau parmi celles disponibles.
@@ -21,4 +21,5 @@ if os.name == 'nt':
     >> >  METTRE LES FONCTIONNALITER DE SNIFFING IMPORTER ICI <<<
     """
 else:
-    print('Linux')
+    liste = Search_linux_interface.list_network_interfaces()
+    print(choose_network_interface(liste))
