@@ -65,6 +65,6 @@ if __name__ == "__main__":
         print(f"Votre Adresse IP: {ip}")
         print(f"Votre Masque Réseau: {masque}")
         print(f"Votre MAC Adresse: {get_mac()}")
-        # analyser_reseau(get_network_address())guy734t2t5iz3n5
+        # analyser_reseau(get_network_address())
     else:
         print("Aucune i nterface active trouvée")
