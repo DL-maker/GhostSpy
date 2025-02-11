@@ -32,13 +32,4 @@ else:
     >> >  METTRE LES FONCTIONNALITER DE SNIFFING IMPORTER ICI <<<
     """
 
-resultat = Scanner_final_puch.get_active_interface()
-interface, ip, masque = resultat
-
-print(f"Votre Adresse Réseau: {Scanner_final_puch.get_network_address()}")
-
-print(f"Votre Adresse IP: {ip}")
-print(f"Votre Masque Réseau: {masque}")
-print(f"Votre MAC Adresse: {Scanner_final_puch.get_mac()}")
-
 Scanner_final_puch.analyser_reseau(Scanner_final_puch.get_network_address())

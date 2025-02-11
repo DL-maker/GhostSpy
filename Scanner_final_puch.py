@@ -57,6 +57,17 @@ def get_active_interface() -> tuple:
 def get_mac():
     mac_address = get_mac_address()
     return mac_address
+def scan_ports(ip, ports):
+    open_ports = {}
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.1)  # Устанавливаем таймаут для соединения
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports[port] = SERVICE_DICT.get(port, "Unknown")
+        sock.close()
+    return open_ports
+
 def analyser_reseau(ip_avec_masque):
     try:
         # Analyser l'adresse IP avec le masque
@@ -79,9 +90,18 @@ def analyser_reseau(ip_avec_masque):
             print("\033c", end="")
 
             # Affichage de l'entête
+            
+            resultat = get_active_interface()
+            interface, ip, masque = resultat
+
+            print(f"Votre Adresse Réseau: {get_network_address()}")
+            print(f"Votre Adresse IP: {ip}")
+            print(f"Votre Masque Réseau: {masque}")
+            print(f"Votre MAC Adresse: {get_mac()}")
+
             print(f"Appareils trouvés dans le réseau {reseau}:")
             print("-" * 80)
-            print(f"{'IP':<20} {'MAC':<20} {'Nom d\'hôte':<30}")
+            print(f"{'IP':<20} {'MAC':<20} {'Nom d\'hôte':<30} {'Ports ouverts':<50}")
             print("-" * 80)
 
             # Compteur pour le nombre total d'hôtes
@@ -96,8 +116,12 @@ def analyser_reseau(ip_avec_masque):
                     # Si le nom d'hôte n'est pas trouvé, afficher une valeur par défaut
                     nom_hote = "Inconnu"
 
+                # Сканирование портов
+                open_ports = scan_ports(recu.psrc, SERVICE_DICT.keys())
+                ports_info = ", ".join([f"{port} ({service})" for port, service in open_ports.items()])
+
                 # Affichage des informations sur chaque hôte
-                print(f"{recu.psrc:<20} {recu.hwsrc:<20} {nom_hote:<30}")
+                print(f"{recu.psrc:<20} {recu.hwsrc:<20} {nom_hote:<30} {ports_info:<50}")
                 compteur_hotes += 1
 
             # Affichage du nombre total d'hôtes
@@ -110,8 +134,66 @@ def analyser_reseau(ip_avec_masque):
     except Exception as e:
         print(f"[ERREUR] {e}")
 
-# Пример вызова функции
+# ex d utilisation 
 # analyser_reseau("192.168.1.0/24")
+SERVICE_DICT = {
+    21: "FTP",  # File Transfer Protocol
+    22: "SSH",  # Secure Shell
+    23: "Telnet",  # Telnet protocol
+    25: "SMTP",  # Simple Mail Transfer Protocol
+    53: "DNS",  # Domain Name System
+    69: "TFTP",  # Trivial File Transfer Protocol
+    80: "HTTP",  # Hypertext Transfer Protocol
+    443: "HTTPS",  # Hypertext Transfer Protocol Secure
+    110: "POP3",  # Post Office Protocol 3
+    143: "IMAP",  # Internet Message Access Protocol
+    3306: "MySQL",  # MySQL Database
+    3389: "RDP",  # Remote Desktop Protocol
+    8080: "HTTP Proxy",  # Alternative HTTP port (Proxy)
+    8888: "HTTP Alternative",  # Alternative HTTP port
+    3307: "MySQL Cluster",  # MySQL Cluster
+    8000: "HTTP (Python Simple Server)",  # Python HTTP server (default port)
+    5000: "Flask / HTTP API",  # Flask web framework default port
+    5432: "PostgreSQL",  # PostgreSQL Database
+    6379: "Redis",  # Redis key-value store
+    9200: "Elasticsearch",  # Elasticsearch service
+    9300: "Elasticsearch (transport)",  # Elasticsearch transport port
+    27017: "MongoDB",  # MongoDB Database
+    161: "SNMP",  # Simple Network Management Protocol
+    162: "SNMP Trap",  # SNMP Trap
+    514: "Syslog",  # Syslog service
+    520: "RIP",  # Routing Information Protocol
+    631: "CUPS",  # Common UNIX Printing System (CUPS)
+    3128: "Squid Proxy",  # Squid Proxy Server
+    4444: "Blaster Worm",  # Blaster Worm (malicious software)
+    5555: "Android Debug Bridge (ADB)",  # Android Debug Bridge
+    5900: "VNC",  # Virtual Network Computing (VNC)
+    6000: "X11",  # X Window System
+    6660: "IRC",  # Internet Relay Chat
+    6667: "IRC",  # Internet Relay Chat (default port)
+    1080: "SOCKS Proxy",  # SOCKS Proxy
+    1433: "Microsoft SQL Server",  # Microsoft SQL Server
+    1434: "Microsoft SQL Server (SQL Resolution)",  # Microsoft SQL Server Resolution
+    1521: "Oracle Database",  # Oracle Database
+    2049: "NFS",  # Network File System
+    3690: "Subversion (SVN)",  # Subversion version control
+    5060: "SIP",  # Session Initiation Protocol
+    8081: "HTTP Proxy",  # HTTP Proxy Alternative
+    9090: "Webmin",  # Webmin service
+    9999: "Remote Administration",  # Remote Administration (e.g., Netcat)
+    10000: "Webmin",  # Webmin service (default port)
+    20000: "Webmin",  # Webmin (Alternative port)
+    10051: "Zabbix agent",  # Zabbix monitoring agent
+    12345: "NetBus Trojan",  # NetBus Trojan (malicious software)
+    31337: "Back Orifice",  # Back Orifice (malicious software)
+    44444: "Blaster Worm",  # Blaster Worm (malicious software)
+    55555: "Netcat",  # Netcat (network tool)
+    6666: "Localhost service",  # Localhost service (possibly malicious)
+    1234: "C&C service",  # Command and Control (malicious service)
+    4321: "DDoS botnet (agent)",  # DDoS botnet agent
+    8009: "Tomcat AJP",  # Tomcat AJP (Apache JServ Protocol)
+    8888: "HTTP (alternative)",  # HTTP alternative port
+}
 
 
 if __name__ == "__main__":
