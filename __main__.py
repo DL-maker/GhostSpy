@@ -41,3 +41,4 @@ print(f"Votre Adresse IP: {ip}")
 print(f"Votre Masque Réseau: {masque}")
 print(f"Votre MAC Adresse: {Scanner_final_puch.get_mac()}")
 
+Scanner_final_puch.analyser_reseau(Scanner_final_puch.get_network_address())
