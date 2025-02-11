@@ -17,3 +17,5 @@ data = {
     "Proxy Usage": ["Yes"]
 }
 df = pd.DataFrame(data)
+
+df.to_csv("data.csv", index=False)
