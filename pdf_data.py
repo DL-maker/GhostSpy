@@ -1,4 +1,4 @@
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
@@ -325,7 +325,7 @@ def add_section(content, title, data, style, is_dict=False):
 
 # Create the PDF document
 def create_pdf_with_data(file_name, data):
-    doc = SimpleDocTemplate(file_name, pagesize=letter)
+    doc = SimpleDocTemplate(file_name, pagesize=A4)
     content = []
     styles = getSampleStyleSheet()
 
