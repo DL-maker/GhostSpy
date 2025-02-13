@@ -50,7 +50,7 @@ data = {
 
 
 
-# Pie chart code → une couleur pour chaque masque - nombre de demande pour graph circulaire
+# Pie chart code → une couleur pour chaque masque et son nombre de demande
 from reportlab.graphics.charts.legends import Legend
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.pdfbase.pdfmetrics import stringWidth, EmbeddedType1Face, registerTypeFace, Font, registerFont
@@ -106,6 +106,108 @@ class PieChart(_DrawingEditorMixin,Drawing):
         self.pie.x                    = 25
 
 
+# bar chart code → nombre de demande par port
+from reportlab.lib.colors import PCMYKColor, Color, CMYKColor, black
+from reportlab.graphics.charts.legends import Legend
+from reportlab.graphics.shapes import Drawing, _DrawingEditorMixin, String, Line
+from reportlab.lib.validators import Auto
+from reportlab.lib import colors
+from reportlab.pdfbase.pdfmetrics import stringWidth, EmbeddedType1Face, registerTypeFace, Font, registerFont
+from reportlab.lib.formatters import DecimalFormatter
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.textlabels import Label
+
+class BarChart(_DrawingEditorMixin, Drawing):
+    def __init__(self, width=403, height=163, *args, **kw):
+        Drawing.__init__(self, width, height, *args, **kw)
+        fontName = 'Helvetica'
+        fontSize = 5
+        bFontName = 'Times-Bold'
+        bFontSize = 7
+        colorsList = [PCMYKColor(0, 73, 69, 56)]
+
+        # Diagramme à bâtons
+        self._add(self, VerticalBarChart(), name='chart', validate=None, desc=None)
+        self.chart.height = 70
+        self.chart.fillColor = None
+        self.chart.data = [[7, 8, 9, 7, 6, 8], [4, 1, 13, 10, 8, 10], [5, 9, 5, 4, 3, 4]]
+        self.chart.bars.strokeWidth = 0.5
+        self.chart.bars.strokeColor = PCMYKColor(0, 0, 0, 100)
+        for i, color in enumerate(colorsList):
+            self.chart.bars[i].fillColor = color
+
+        self.chart.valueAxis.labels.fontName = fontName
+        self.chart.valueAxis.labels.fontSize = fontSize
+        self.chart.valueAxis.strokeDashArray = (5, 0)
+        self.chart.valueAxis.visibleGrid = False
+        self.chart.valueAxis.visibleTicks = False
+        self.chart.valueAxis.tickLeft = 0
+        self.chart.valueAxis.tickRight = 11
+        self.chart.valueAxis.strokeWidth = 0.25
+        self.chart.valueAxis.avoidBoundFrac = 0
+        self.chart.valueAxis.rangeRound = 'both'
+        self.chart.valueAxis.gridStart = 13
+        self.chart.valueAxis.gridEnd = 342
+        self.chart.valueAxis.forceZero = True
+        self.chart.valueAxis.labels.boxAnchor = 'e'
+        self.chart.valueAxis.labels.dx = -1
+
+        self.chart.categoryAxis.strokeDashArray = (5, 0)
+        self.chart.categoryAxis.visibleGrid = False
+        self.chart.categoryAxis.visibleTicks = False
+        self.chart.categoryAxis.strokeWidth = 0.25
+        self.chart.categoryAxis.tickUp = 5
+        self.chart.categoryAxis.tickDown = 0
+        self.chart.categoryAxis.labelAxisMode = 'low'
+        self.chart.categoryAxis.labels.textAnchor = 'end'
+        self.chart.categoryAxis.labels.fillColor = black
+        self.chart.categoryAxis.labels.angle = 0
+        self.chart.categoryAxis.labels.fontName = bFontName
+        self.chart.categoryAxis.labels.fontSize = bFontSize
+        self.chart.categoryAxis.labels.boxAnchor = 'e'
+        self.chart.categoryAxis.labels.dx = 7
+        self.chart.categoryAxis.labels.dy = -5
+
+        # Legend
+        self._add(self, Legend(), name='legend', validate=None, desc=None)
+        self.legend.deltay = 8
+        self.legend.fontName = fontName
+        self.legend.fontSize = fontSize
+        self.legend.strokeWidth = 0.5
+        self.legend.strokeColor = PCMYKColor(0,0,0,100)
+        self.legend.autoXPadding = 0
+        self.legend.dy = 5
+        self.legend.variColumn = True
+        self.legend.subCols.minWidth = self.chart.width/2
+        self.legend.colorNamePairs = Auto(obj=self.chart)
+
+        # Nom des légendes
+        self.chart.bars[0].name = 'SSH'
+        self.chart.bars[1].name = 'FTP'
+        self.chart.bars[2].name = 'Telnet'
+
+        self.width = 400
+        self.height = 200
+        self.legend.dx = 8
+        self.legend.dxTextSpace = 5
+        self.legend.deltax = 0
+        self.legend.alignment = 'right'
+        self.legend.columnMaximum = 3
+        self.chart.y = 80
+        self.chart.barWidth = 2
+        self.chart.groupSpacing = 5
+        self.chart.width = 250
+        self.chart.barSpacing = 0.5
+        self.chart.x = 20
+        self.legend.y = 45
+        self.legend.boxAnchor = 'sw'
+        self.legend.x = 20
+        self.chart.bars[0].fillColor = PCMYKColor(100,60,0,50,alpha=100)
+        self.chart.bars[1].fillColor = PCMYKColor(23,51,0,4,alpha=100)
+        self.chart.bars[2].fillColor = PCMYKColor(100,0,90,50,alpha=100)
+
+
+
 # Helper function to create sections
 def add_section(content, title, data, style, is_dict=False):
     content.append(Paragraph(f"<b>{title}</b>", style))
@@ -124,16 +226,22 @@ def create_pdf_with_data(file_name, data):
     styles = getSampleStyleSheet()
 
     # Title Section
-    content.append(Paragraph("Device and Network Report", styles['Title']))
+    content.append(Paragraph("Network Information Report", styles['Title']))
     content.append(Spacer(1, 12))
 
-    # Graphe circulaire
+    # Graphique circulaire
     pie_chart = PieChart()
     content.append(pie_chart)
     content.append(Spacer(1, 12))
 
     # Add Sections
     add_section(content, "Network Activity", data['network_activity'], styles['Normal'], is_dict=True)
+
+    # Diagramme à bâtons
+    bar_chart = BarChart()
+    content.append(bar_chart)
+    content.append(Spacer(1, 12))
+
     add_section(content, "Connection_information", data['connection_information'], styles['Normal'], is_dict=True)
     add_section(content, "Application Characteristics", data['application_characteristics'], styles['Normal'], is_dict=True)
     add_section(content, "Localization and Environment", data['localization_and_environment'], styles['Normal'], is_dict=True)
