@@ -1,13 +1,6 @@
 import json
 data = {
     "data": {
-        "connection_information": {
-        "protocol_used": "Wi-Fi",
-        "wifi_standard": ["802.11a", "802.11b", "802.11g", "802.11n", "802.11ac", "802.11ax"],
-        "network_protocols": ["DHCP", "ARP", "TCP/IP"],
-        "security_protocol": ["WPA2", "WPA3"],
-        "channel_used": "5 GHz"
-        },
         "network_activity": {
             "dns_queries": ["example.com", "service.com"],
             "connection_history": ["192.168.1.2", "203.0.113.6"],
@@ -19,6 +12,13 @@ data = {
                 "downloaded": "2GB",
                 "uploaded": "500MB"
             }
+        },
+        "connection_information": {
+            "protocol_used": "Wi-Fi",
+            "wifi_standard": ["802.11a", "802.11b", "802.11g", "802.11n", "802.11ac", "802.11ax"],
+            "network_protocols": ["DHCP", "ARP", "TCP/IP"],
+            "security_protocol": ["WPA2", "WPA3"],
+            "channel_used": "5 GHz"
         },
         "application_characteristics": {
             "active_apps_services": ["web browser", "online game", "streaming service"],

@@ -1,11 +1,6 @@
 import pandas as pd
 
 data = {
-    "connection_protocol": ["Wi-Fi"],
-    "wifi_standards": [["802.11a", "802.11b", "802.11g", "802.11n", "802.11ac", "802.11ax"]],
-    "network_protocols": [["DHCP", "ARP", "TCP/IP"]],
-    "security_protocols": [["WPA2", "WPA3"]],
-    "channel_used": ["5 GHz"],
     "dns_queries": [["example.com", "service.com"]],
     "connection_history": [["192.168.1.2", "203.0.113.6"]],
     "open_ports": [[80, 443, 21]],
@@ -14,6 +9,11 @@ data = {
     "exposed_ports": [[22, 3306]],
     "downloaded_data": ["2GB"],
     "uploaded_data": ["500MB"],
+    "connection_protocol": ["Wi-Fi"],
+    "wifi_standards": [["802.11a", "802.11b", "802.11g", "802.11n", "802.11ac", "802.11ax"]],
+    "network_protocols": [["DHCP", "ARP", "TCP/IP"]],
+    "security_protocols": [["WPA2", "WPA3"]],
+    "channel_used": ["5 GHz"],
     "active_apps_services": [["web browser", "online game", "streaming service"]],
     "os_version": ["Windows 10 1909"],
     "browser_version": ["Chrome 92"],
