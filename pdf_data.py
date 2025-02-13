@@ -4,12 +4,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 # Example data
 data = {
-    "device_identification": {
-        "mac_address": "XX:XX:XX:XX:XX:XX",
-        "local_ip_address": "192.168.1.1",
-        "public_ip_address": "203.0.113.5",
-        "hostname": "device-name"
-    },
     "connection_information": {
         "protocol_used": "Wi-Fi",
         "wifi_standard": ["802.11a", "802.11b", "802.11g", "802.11n", "802.11ac", "802.11ax"],
@@ -23,6 +17,7 @@ data = {
         "open_ports": [80, 443, 21],
         "transport_protocol": ["TCP", "UDP"],
         "traffic_type": ["HTTPS", "HTTP", "FTP", "SSH"],
+        "exposed_ports": [22, 3306],
         "data_volume": {
             "downloaded": "2GB",
             "uploaded": "500MB"
@@ -45,15 +40,10 @@ data = {
         },
         "neighboring_devices": ["device2", "device3"]
     },
-    "potential_vulnerabilities": {
-        "outdated_os": True,
-        "known_security_flaws": ["CVE-2021-12345", "CVE-2020-9876"],
-        "exposed_ports": [22, 3306]
-    },
     "network_configuration": {
         "dhcp_server_ip": "192.168.1.1",
         "dns_server_ip": "8.8.8.8",
-        "default_gateway": "192.168.1.1",
+        "default_gateway(s)": ["192.168.1.1", "192.168.20.1"],
         "subnet_mask": "255.255.255.0"
     }
 }
@@ -81,12 +71,10 @@ def create_pdf_with_data(file_name):
     content.append(Spacer(1, 12))
 
     # Add Sections
-    add_section(content, "Device Identification", data['device_identification'], styles['Normal'], is_dict=True)
     add_section(content, "Connection Information", data['connection_information'], styles['Normal'], is_dict=True)
     add_section(content, "Network Activity", data['network_activity'], styles['Normal'], is_dict=True)
     add_section(content, "Application Characteristics", data['application_characteristics'], styles['Normal'], is_dict=True)
     add_section(content, "Localization and Environment", data['localization_and_environment'], styles['Normal'], is_dict=True)
-    add_section(content, "Potential Vulnerabilities", data['potential_vulnerabilities'], styles['Normal'], is_dict=True)
     add_section(content, "Network Configuration", data['network_configuration'], styles['Normal'], is_dict=True)
 
     # Build the document
