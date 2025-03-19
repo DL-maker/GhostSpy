@@ -141,9 +141,14 @@ def disconnect_client(client_id):
 
 
 app.static_folder = 'frontend'
+
 @app.route('/')
 def index():
     return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static_files(path):
+    return send_from_directory(app.static_folder, path)
 
 @app.route('/screenshots/<filename>') # Nouvelle route pour servir les screenshots
 def serve_screenshot(filename):

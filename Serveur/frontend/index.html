@@ -3,22 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <title>Surveillance PC</title>
-    <style>body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-.navbar { background-color: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; border: none; }
-.navbar button { padding: 8px 15px; border: none; border-radius: 5px; background-color: #4CAF50; color: white; cursor: pointer; margin-left: 5px; }
+    <style>
+body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff; }
+.navbar { background-color: #a8d2fc; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 7px; margin: 5px;}
+.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; width: 65%; border: none; outline: none;}
+.navbar button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #00b3ad; color: white; cursor: pointer;}
+
 .client-list { display: flex; flex-wrap: wrap; padding: 20px; }
-.client-block { background-color: white; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
-.client-block h3 { margin-top: 0; margin-bottom: 5px; }
-.device-page { padding: 20px; }
-.screenshot-area img { max-width: 100%; border: 1px solid #ccc; }
-.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; }</style>
+.client-block { background-color: rgba(255, 255, 255, 0.4) ; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px #8BA9CC80 ; cursor: pointer; }
+.client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px; }
+.client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
+
+.device-page {background-color:  #edf5ff; padding: 20px; }
+.device-page button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #7d8ceb; color: white; cursor: pointer; margin-left: 10px;}
+.device-page input { padding: 8px; border-radius: 5px; border-width: 1px; width: 65%; margin: 10px; outline: none;}
+.device-page h2, h3 { margin: 10px; }
+
+.screenshot-area img { max-width: 70%; border: 1px solid #ccc; border-radius: 5px; margin-left: 10px; box-shadow: 0 2px 4px #8BA9CC80}
+.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; outline: none;}
+</style>
 </head>
+
 <body>
     <div class="navbar">
-        <div class="logo">Logo</div>
+        <img src="SpyGhost_icon.png" alt="SpyGhost official icon" width="41.6" height="41.6"/>
         <input type="text" placeholder="Rechercher un appareil...">
-        <div class="client-count">Connectés: <span id="connected-count">0</span> / Non Connectés: <span id="disconnected-count">0</span></div>
+        <div class="client-count"> En ligne : <span id="connected-count">0</span> / Hors ligne : <span id="disconnected-count">0</span></div>
         <button id="api-button">API</button>
         <button id="settings-button">Settings</button>
     </div>
@@ -27,18 +37,18 @@
         </div>
 
     <div class="device-page" id="device-page" style="display: none;">
-        <h2>Surveillance de l'appareil <span id="device-name-header"></span></h2>
+        <h2> Surveillance de l'appareil <span id="device-name-header"></span></h2>
         <div class="screenshot-area">
             <h3>Screenshot en direct</h3>
             <img id="screenshot-display" src="" alt="Screenshot de l'appareil">
         </div>
         <div class="command-area">
             <h3>Exécuter une commande</h3>
-            <input type="text" id="command-input" placeholder="Commande à exécuter">
-            <button id="execute-command-button">Exécuter</button>
+            <input type="text" id="command-input" placeholder="Taper une commande">
+            <button id="execute-command-button"> Exécuter </button>
             <div id="command-output"></div>
         </div>
-        <button id="back-to-list-button">Retour à la liste des appareils</button>
+        <button id="back-to-list-button"> Retour à la liste des appareils </button>
     </div>
 
     <script >document.addEventListener('DOMContentLoaded', function() {
