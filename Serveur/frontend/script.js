@@ -19,17 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 clientListDiv.innerHTML = ''; // Effacer la liste actuelle
                 let connectedClients = 0;
                 let disconnectedClients = 0;
-
+                
                 clients.forEach(client => {
                     const clientBlock = document.createElement('div');
                     clientBlock.className = 'client-block';
-                    clientBlock.innerHTML = `
-                        <h3>${client.name}</h3>
+                    clientBlock.innerHTML = 
+                        `<h3><img src="${client.os_type}.png" alt="OS_icon" width="25" height="25"/> ${client.name}</h3>
                         <p>OS: ${client.os_type}</p>
                         <p>Connecté: ${client.is_connected ? 'Oui' : 'Non'}</p>
                         <button onclick="showDevicePage(${client.id}, '${client.name}')">Surveiller</button>
-                        <button onclick="disconnectClient(${client.id})">Déconnecter</button> 
-                    `;
+                        <button onclick="disconnectClient(${client.id})">Déconnecter</button>`;
                     clientListDiv.appendChild(clientBlock);
                     if (client.is_connected) {
                         connectedClients++;

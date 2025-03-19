@@ -5,7 +5,7 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 
 .client-list { display: flex; flex-wrap: wrap; padding: 20px; }
 .client-block { background-color: rgba(255, 255, 255, 0.4) ; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px #8BA9CC80 ; cursor: pointer; }
-.client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px; }
+.client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px;}
 .client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
 
 .device-page {background-color:  #edf5ff; padding: 20px; }
@@ -14,4 +14,4 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 .device-page h2, h3 { margin: 10px; }
 
 .screenshot-area img { max-width: 70%; border: 1px solid #ccc; border-radius: 5px; margin-left: 10px; box-shadow: 0 2px 4px #8BA9CC80}
-.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; outline: none;}
+.command-area textarea { width: 50%; margin-bottom: 10px; outline: none;}
