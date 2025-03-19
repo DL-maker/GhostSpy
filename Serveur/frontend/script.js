@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p>OS: ${client.os_type}</p>
                         <p>Connecté: ${client.is_connected ? 'Oui' : 'Non'}</p>
                         <button onclick="showDevicePage(${client.id}, '${client.name}')">Surveiller</button>
+                        <button onclick="disconnectClient(${client.id})">Déconnecter</button> 
                     `;
                     clientListDiv.appendChild(clientBlock);
                     if (client.is_connected) {
@@ -50,6 +51,17 @@ document.addEventListener('DOMContentLoaded', function() {
         startScreenshotPolling(clientId); // Démarrer le polling régulier des screenshots
     }
 
+    window.disconnectClient = function(clientId) { // Fonction globale pour être appelée depuis HTML
+fetch(`/client/${clientId}/disconnect`, { // Endpoint API Flask pour déconnecter le client
+    method: 'POST',
+})
+.then(response => response.json())
+.then(data => {
+    console.log(data.message); // Afficher un message de confirmation dans la console (peut être amélioré)
+    fetchClients(); // Rafraîchir la liste des clients pour mettre à jour l'état de connexion
+});
+}
+
     backToListButton.addEventListener('click', function() {
         devicePageDiv.style.display = 'none';
         clientListDiv.style.display = 'flex';
@@ -59,19 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let screenshotPollingInterval; // Variable pour stocker l'intervalle du polling des screenshots
 
     function fetchScreenshot(clientId) {
-        // Pour l'instant, on affiche juste le dernier screenshot enregistré, il faudrait le récupérer en direct via une nouvelle API
-        screenshotDisplay.src = `/screenshots/client_${clientId}_latest.png`; // Endpoint API à créer pour servir le dernier screenshot
-        // Pour l'instant on va utiliser le path enregistré dans la base de données
-        fetch(`/clients`) // Récupérer de nouveau la liste des clients pour trouver le path du screenshot du client concerné (inefficace, mais pour l'exemple)
-            .then(response => response.json())
-            .then(clients => {
-                const client = clients.find(c => c.id === clientId);
-                if (client && client.last_screenshot_path) {
-                    screenshotDisplay.src = client.last_screenshot_path; // On utilise le chemin enregistré
-                } else {
-                    screenshotDisplay.src = ''; // Pas de screenshot
-                }
-            });
+        screenshotDisplay.src = `/screenshots/client_${clientId}_latest.png?timestamp=${new Date().getTime()}`; // Ajout d'un timestamp pour forcer le navigateur à recharger l'image
     }
 
 

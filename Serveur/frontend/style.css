@@ -1,10 +1,17 @@
-body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-.navbar { background-color: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; border: none; }
-.navbar button { padding: 8px 15px; border: none; border-radius: 5px; background-color: #4CAF50; color: white; cursor: pointer; margin-left: 5px; }
+body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff; }
+.navbar { background-color: #a8d2fc; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 7px; margin: 5px;}
+.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; width: 65%; border: none; outline: none;}
+.navbar button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #00b3ad; color: white; cursor: pointer;}
+
 .client-list { display: flex; flex-wrap: wrap; padding: 20px; }
-.client-block { background-color: white; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
-.client-block h3 { margin-top: 0; margin-bottom: 5px; }
-.device-page { padding: 20px; }
-.screenshot-area img { max-width: 100%; border: 1px solid #ccc; }
-.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+.client-block { background-color: rgba(255, 255, 255, 0.4) ; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px #8BA9CC80 ; cursor: pointer; }
+.client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px; }
+.client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
+
+.device-page {background-color:  #edf5ff; padding: 20px; }
+.device-page button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #7d8ceb; color: white; cursor: pointer; margin-left: 10px;}
+.device-page input { padding: 8px; border-radius: 5px; border-width: 1px; width: 65%; margin: 10px; outline: none;}
+.device-page h2, h3 { margin: 10px; }
+
+.screenshot-area img { max-width: 70%; border: 1px solid #ccc; border-radius: 5px; margin-left: 10px; box-shadow: 0 2px 4px #8BA9CC80}
+.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; outline: none;}
