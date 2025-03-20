@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, json, jsonify, request, send_from_directory
 import sqlite3
 import subprocess
 import base64
@@ -154,6 +154,31 @@ def serve_static_files(path):
 def serve_screenshot(filename):
     return send_from_directory(UPLOAD_FOLDER, filename) # Utiliser UPLOAD_FOLDER
 
+@app.route('/client/<int:client_id>/commandresult', methods=['POST'])
+def receive_command_result(client_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+    
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET command_output = ? WHERE id = ?', 
+                (json.dumps(data), client_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Résultat de commande enregistré'}), 200
+
+@app.route('/client/<int:client_id>/commandresult', methods=['GET'])
+def get_command_result(client_id):
+    conn = get_db_connection()
+    client = conn.execute('SELECT command_output FROM clients WHERE id = ?', (client_id,)).fetchone()
+    conn.close()
+    
+    if client and client['command_output']:
+        return jsonify({'output': json.loads(client['command_output'])}), 200
+    else:
+        return jsonify({'output': None}), 200
+
 def verifier_deconnexions():
     """Fonction exécutée périodiquement pour vérifier si des clients sont déconnectés."""
     with app.app_context(): # Créer un contexte d'application Flask pour accéder à la base de données
@@ -183,6 +208,30 @@ def demarrer_verificateur_deconnexions():
     thread_verification.daemon = True # Le thread s'arrête quand l'application principale s'arrête
     thread_verification.start()
 
+@app.route('/client/<int:client_id>/resources', methods=['POST'])
+def receive_resources(client_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+    
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET resources = ? WHERE id = ?', 
+                (json.dumps(data), client_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Données de ressources système enregistrées'}), 200
+
+@app.route('/client/<int:client_id>/resources', methods=['GET'])
+def get_resources(client_id):
+    conn = get_db_connection()
+    client = conn.execute('SELECT resources FROM clients WHERE id = ?', (client_id,)).fetchone()
+    conn.close()
+    
+    if client and client['resources']:
+        return jsonify({'resources': json.loads(client['resources'])}), 200
+    else:
+        return jsonify({'resources': None}), 200
 
 if __name__ == '__main__':
     demarrer_verificateur_deconnexions() # Démarrer le vérificateur de déconnexions au lancement du serveur
