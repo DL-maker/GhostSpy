@@ -28,21 +28,26 @@
             <h3>Ressources système</h3>
             <div class="resource-metrics">
                 <div class="resource-metric">
-                    <h4>CPU</h4>
-                    <div class="progress-bar">
-                        <div id="cpu-progress" class="progress-fill"></div>
+                    <h4>CPU Usage</h4>
+                    <div class="circle-container">
+                        <div class="circle" id="cpu-progress">
+                            <div class="percentage" id="cpu-usage-text">0%</div>
+                        </div>
                     </div>
-                    <span id="cpu-usage-text">0%</span>
-                    <span id="cpu-alert" class="alert-text"></span>
+
+                    <div id="cpu-alert"></div>
                 </div>
+    
                 <div class="resource-metric">
-                    <h4>RAM</h4>
-                    <div class="progress-bar">
-                        <div id="ram-progress" class="progress-fill"></div>
+                    <h4>RAM Usage</h4>
+                    <div class="circle-container">
+                        <div class="circle" id="ram-progress">
+                            <div class="percentage" id="ram-usage-text">0%</div>
+                        </div>
                     </div>
-                    <span id="ram-usage-text">0 GB / 0 GB (0%)</span>
-                    <span id="ram-alert" class="alert-text"></span>
+                    <div id="ram-alert"></div>
                 </div>
+    
             </div>
         </div>
         

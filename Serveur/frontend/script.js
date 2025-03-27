@@ -207,70 +207,87 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-    // Rafraîchir la liste des clients toutes les 10 secondes (ou moins souvent)
-    setInterval(fetchClients, 10000); // Rafraîchir la liste toutes les 10 secondes
-    fetchClients(); // Charger la liste initiale au démarrage de la page
+    // Rafraîchir la liste des clients
+    setInterval(fetchClients, 5000); 
+    fetchClients(); 
+
+function percentageToDegrees(percent) {
+    return percent * 3.6;
+}
 
 function fetchResourceInfo(clientId) {
-fetch(`/client/${clientId}/resources`)
-.then(response => response.json())
-.then(data => {
-    if (data.resources) {
-        // Mise à jour CPU
-        const cpuUsage = data.resources.cpu_usage;
-        document.getElementById('cpu-progress').style.width = `${cpuUsage}%`;
-        document.getElementById('cpu-usage-text').textContent = `${cpuUsage}%`;
-        
-        // Couleur de la barre CPU en fonction de l'utilisation
-        if (cpuUsage > 80) {
-            document.getElementById('cpu-progress').style.backgroundColor = '#ff3333';
-        } else if (cpuUsage > 60) {
-            document.getElementById('cpu-progress').style.backgroundColor = '#ff9933';
-        } else {
-            document.getElementById('cpu-progress').style.backgroundColor = '#4CAF50';
-        }
-        
-        // Alerte CPU
-        if (data.resources.cpu_threshold_exceeded) {
-            document.getElementById('cpu-alert').textContent = 'CPU dépasse le seuil maximal!';
-        } else {
-            document.getElementById('cpu-alert').textContent = '';
-        }
-        
-        // Mise à jour RAM
-        const ramPercent = data.resources.ram_percent;
-        const ramTotal = data.resources.ram_total;
-        const ramUsed = data.resources.ram_used;
-        
-        document.getElementById('ram-progress').style.width = `${ramPercent}%`;
-        document.getElementById('ram-usage-text').textContent = `${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)`;
-        
-        // Couleur de la barre RAM en fonction de l'utilisation
-        if (ramPercent > 80) {
-            document.getElementById('ram-progress').style.backgroundColor = '#ff3333';
-        } else if (ramPercent > 60) {
-            document.getElementById('ram-progress').style.backgroundColor = '#ff9933';
-        } else {
-            document.getElementById('ram-progress').style.backgroundColor = '#4CAF50';
-        }
-        
-        // Alerte RAM
-        if (data.resources.ram_threshold_exceeded) {
-            document.getElementById('ram-alert').textContent = 'RAM dépasse le seuil maximal!';
-        } else {
-            document.getElementById('ram-alert').textContent = '';
-        }
-    }
-});
+    fetch(`/client/${clientId}/resources`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.resources) {
+                const cpuUsage = data.resources.cpu_usage;
+                const ramUsage = data.resources.ram_used;
+                const cpuThresholdExceeded = data.resources.cpu_threshold_exceeded;
+                const ramThresholdExceeded = data.resources.ram_threshold_exceeded;
+
+                // --- CPU Circle --- 
+                const cpuCircle = document.getElementById('cpu-progress');
+                const cpuPercentageText = document.getElementById('cpu-usage-text');
+                const cpuAlertText = document.getElementById('cpu-alert');
+
+                let cpuColor;
+                if (cpuUsage > 80) {
+                    cpuColor = '#ff3333'; 
+                } else if (cpuUsage > 60) {
+                    cpuColor = '#ff9933'; 
+                } else {
+                    cpuColor = '#4CAF50';
+                }
+
+                // Mettre à jour correctement le gradient du cercle CPU
+                cpuCircle.style.background = `conic-gradient(${cpuColor} ${percentageToDegrees(cpuUsage)}deg, #e2e8f0 0deg)`;
+                cpuPercentageText.textContent = cpuUsage + '%';
+
+                if (cpuThresholdExceeded) {
+                    cpuCircle.classList.add('pulse');
+                    cpuAlertText.textContent = 'CPU dépasse le seuil maximal!';
+                } else {
+                    cpuCircle.classList.remove('pulse');
+                    cpuAlertText.textContent = '';
+                }
+
+                // --- RAM Circle --- 
+                const ramCircle = document.getElementById('ram-progress');
+                const ramPercentageText = document.getElementById('ram-usage-text');
+                const ramAlertText = document.getElementById('ram-alert');
+
+                let ramColor;
+                if (ramUsage > 80) {
+                    ramColor = '#ff3333';
+                } else if (ramUsage > 60) {
+                    ramColor = '#ff9933';
+                } else {
+                    ramColor = '#4CAF50';
+                }
+
+                // Mettre à jour correctement le gradient du cercle RAM
+                ramCircle.style.background = `conic-gradient(${ramColor} ${percentageToDegrees(ramUsage)}deg, #e2e8f0 0deg)`;
+                ramPercentageText.textContent = ramUsage + '%';
+
+                if (ramThresholdExceeded) {
+                    ramCircle.classList.add('pulse');
+                    ramAlertText.textContent = 'RAM dépasse le seuil maximal!';
+                } else {
+                    ramCircle.classList.remove('pulse');
+                    ramAlertText.textContent = '';
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching resource info:', err);
+        });
 }
 
 function startResourcePolling(clientId) {
-resourcePollingInterval = setInterval(() => {
-    fetchResourceInfo(clientId);
-}, 5000); // Rafraîchir toutes les 5 secondes
-}
-
-function stopResourcePolling() {
-clearInterval(resourcePollingInterval);
-}
-});
+    resourcePollingInterval = setInterval(() => {
+        fetchResourceInfo(clientId); }, 5000); // Le Refresh
+    }
+    
+    function stopResourcePolling() {
+    clearInterval(resourcePollingInterval); }
+    });
