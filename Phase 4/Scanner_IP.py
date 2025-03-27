@@ -1,15 +1,15 @@
-import sqlite3
-from getmac import get_mac_address
+
 import socket
 import ipaddress
 import netifaces
 import scapy.all as scapy
 from typing import Tuple, Optional, Dict
 import psutil  # module(pour monitorer le systeme) qui fait comme ps, top, lsof, netstat, ifconfig, who, df, kill, free, nice, ionice, iostat, iotop, uptime, pidof, tty, taskset, pmap
-import threading
+from getmac import get_mac_address
 import time
 import socket
 import ipaddress
+import nmap
 
 
 def get_network_address():
@@ -58,15 +58,39 @@ def get_mac():
     mac_address = get_mac_address()
     return mac_address
 def scan_ports(ip, ports):
-    open_ports = {}
-    for port in ports:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.1)  # Устанавливаем таймаут для соединения
-        result = sock.connect_ex((ip, port))
-        if result == 0:
-            open_ports[port] = SERVICE_DICT.get(port, "Unknown")
-        sock.close()
-    return open_ports
+    nm = nmap.PortScanner()  # Création d'un objet scanner nmap
+    open_ports = {}  # Dictionnaire pour stocker les ports ouverts
+    
+    # Scanner les ports spécifiés en une seule fois
+    ports_str = ",".join(map(str, ports))  # Conversion de la liste des ports en une chaîne de caractères
+    
+    try:
+        # Lancer le scan pour les ports spécifiés en utilisant l'option -T4 pour un scan plus rapide
+        nm.scan(ip, ports_str, arguments='-T4')
+
+        # Vérifier chaque port
+        for port in ports:
+            # Vérifier si le port est ouvert
+            if nm[ip].has_tcp(port) and nm[ip].tcp(port)['state'] == 'open':
+                # Obtenir le nom du service, si disponible, sinon "Unknown"
+                service_name = nm[ip].tcp(port).get('name', 'Unknown')
+                open_ports[port] = service_name
+
+    except Exception as e:
+        print(f"Erreur lors du scan : {e}")  # Gérer les erreurs de scan
+    
+    return open_ports  # Retourner les ports ouverts
+
+# def scan_ports(ip, ports):
+#     open_ports = {}
+#     for port in ports:
+#         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         sock.settimeout(0.1)  # timeout pour la connection
+#         result = sock.connect_ex((ip, port))
+#         if result == 0:
+#             open_ports[port] = SERVICE_DICT.get(port, "Unknown")
+#         sock.close()
+#     return open_ports 
 
 def analyser_reseau(ip_avec_masque):
     try:
@@ -75,7 +99,7 @@ def analyser_reseau(ip_avec_masque):
         print(f"\n[INFO] Réseau détecté: {reseau}\n")
 
         while True:  
-            # Обновление списка IP-адресов в сети
+            # mise-a-joir de liste IP
             ips = [str(ip) for ip in reseau.hosts()]
 
             # Requête ARP
@@ -101,7 +125,7 @@ def analyser_reseau(ip_avec_masque):
 
             print(f"Appareils trouvés dans le réseau {reseau}:")
             print("-" * 80)
-            print(f"{'IP':<20} {'MAC':<20} {'Nom d\'hôte':<30} {'Ports ouverts':<50}")
+            print(f"{'IP':<20} {'MAC':<20} {'Nostname':<30} {'Ports ouverts':<50}")
             print("-" * 80)
 
             # Compteur pour le nombre total d'hôtes
@@ -116,7 +140,7 @@ def analyser_reseau(ip_avec_masque):
                     # Si le nom d'hôte n'est pas trouvé, afficher une valeur par défaut
                     nom_hote = "Inconnu"
 
-                # Сканирование портов
+                # Scan des ports
                 open_ports = scan_ports(recu.psrc, SERVICE_DICT.keys())
                 ports_info = ", ".join([f"{port} ({service})" for port, service in open_ports.items()])
 
