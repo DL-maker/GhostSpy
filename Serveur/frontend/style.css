@@ -1,10 +1,217 @@
-body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-.navbar { background-color: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; border: none; }
-.navbar button { padding: 8px 15px; border: none; border-radius: 5px; background-color: #4CAF50; color: white; cursor: pointer; margin-left: 5px; }
+body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff; }
+.navbar { background-color: #a8d2fc; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 7px; margin: 5px;}
+.navbar input[type="text"] { padding: 8px; margin-right: 10px; border-radius: 5px; width: 60%; border: none; outline: none;}
+.navbar button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #00b3ad; color: white; cursor: pointer;}
+
 .client-list { display: flex; flex-wrap: wrap; padding: 20px; }
-.client-block { background-color: white; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
-.client-block h3 { margin-top: 0; margin-bottom: 5px; }
-.device-page { padding: 20px; }
-.screenshot-area img { max-width: 100%; border: 1px solid #ccc; }
-.command-area textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+.client-block { background-color: rgba(255, 255, 255, 0.4) ; border-radius: 8px; margin: 10px; padding: 15px; width: 300px; box-shadow: 0 2px 4px #8BA9CC80 ; cursor: pointer; }
+.client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px;}
+.client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
+
+.device-page {background-color:  #edf5ff; padding: 20px; }
+.device-page button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #7d8ceb; color: white; cursor: pointer; margin-left: 10px;}
+.device-page input { padding: 8px; border-radius: 5px; border-width: 1px; width: 65%; margin: 10px; outline: none;}
+.device-page h2, h3 { margin: 10px; }
+
+.screenshot-area img { max-width: 70%; border: 1px solid #ccc; border-radius: 5px; margin-left: 10px; box-shadow: 0 2px 4px #8BA9CC80}
+.command-area textarea { width: 50%; margin-bottom: 10px; outline: none;}
+
+/* Nouveaux styles pour la section des ressources système */
+.resources-area {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 6px rgba(139, 169, 204, 0.1);
+}
+
+.resource-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 15px;
+}
+
+.resource-metric {
+    flex: 1;
+    min-width: 200px;
+    background-color: #f8faff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.resource-metric:hover {
+    transform: translateY(-3px);
+}
+
+.resource-metric h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: #4a5568;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.circle-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 12px;
+}
+
+/* Style des cercles */
+.circle {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--color, #4CAF50) var(--percentage, 0%), /* Couleur et pourcentage dynamique */
+        #e2e8f0 var(--percentage, 0%) /* Le reste du cercle */
+    );
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 15px var(--color, #4CAF50)60;
+    transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* l'effet */
+.circle.pulse {
+    animation: pulse 1s infinite;
+}
+
+/*Partie intérieure du cercle*/
+.circle::before {
+    content: '';
+    position: absolute;
+    width: 75%;
+    height: 75%;
+    background: #f8faff;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+/* Pourcentage à l'intérieur du cercle */
+.percentage {
+    position: absolute;
+    z-index: 2;
+    color: var(--color, #4CAF50);
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: color 0.5s ease;
+}
+
+/* Animation pour un effet d'"impulsion" quand le seuil est dépassé*/
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(255, 0, 51, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 0, 51, 1);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 0, 51, 0.6);
+    }
+}
+
+/* Alerte quand le CPU ou la RAM dépasse son seuil */
+#cpu-alert,
+#ram-alert {
+    color: #ff3333;
+    font-weight: bold;
+    height: 24px;
+}
+
+
+/* Styles pour la zone de commande */
+.command-area {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 6px rgba(139, 169, 204, 0.1);
+}
+
+.command-area h3 {
+    margin-bottom: 15px;
+    color: #4a5568;
+}
+
+.command-area input[type="text"] {
+    width: calc(100% - 140px);
+    padding: 10px 12px;
+    border: 1px solid #d1d9e6;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.command-area button {
+    padding: 10px 18px;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.command-area button:hover {
+    background-color: #3a5ce5;
+}
+
+#command-output {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #1e293b;
+    color: #e2e8f0;
+    border-radius: 8px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none; /* Caché par défaut jusqu'à ce qu'il y ait une sortie */
+}
+
+.command-stdout {
+    color: #a3e635;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.command-stderr {
+    color: #fb7185;
+    margin: 0;
+    padding: 5px 0;
+}
+
+.command-header {
+    color: #94a3b8;
+    font-weight: bold;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #475569;
+    padding-bottom: 8px;
+}
+
+.command-spinner {
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
