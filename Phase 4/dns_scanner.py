@@ -75,7 +75,7 @@ def packet_printer(packet):
 # On active le sniffing sur l'interface (indiquez votre interface, par exemple "eth0" ou "wlan0")
 # Pour le Wi-Fi : utilisez le mode surveillance avec l'interface correspondante, par exemple "wlan0mon"
 
-iface = "wlp0s20f3"  # Indiquez votre interface, par exemple "wlan0" pour le Wi-Fi ou "eth0" pour un réseau câblé
+iface = "wlan0"  # Indiquez votre interface, par exemple "wlan0" pour le Wi-Fi ou "eth0" pour un réseau câblé
 print(f"Début de la capture des requêtes DNS sur l'interface {iface}...")
 
 # Capture des requêtes DNS
