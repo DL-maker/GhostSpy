@@ -1,7 +1,7 @@
 
 import socket
 import ipaddress
-import netifaces
+import get_ip_mask_interface
 import scapy.all as scapy
 from typing import Tuple, Optional, Dict
 import psutil  # module(pour monitorer le systeme) qui fait comme ps, top, lsof, netstat, ifconfig, who, df, kill, free, nice, ionice, iostat, iotop, uptime, pidof, tty, taskset, pmap
@@ -31,28 +31,19 @@ def get_network_address():
     return None
 
 def get_active_interface() -> tuple:
-    try:
-        gateways = netifaces.gateways()
-        if 'default' not in gateways or netifaces.AF_INET not in gateways['default']:
-            return None
+    network_info = get_ip_mask_interface.get_interface_info()
+    if network_info:
+        active_interface = network_info['interface']
+        ip = network_info['ip'] 
+        netmask = network_info['subnet_mask']
+        return (active_interface, ip, netmask)
+    else:
+        print("Error with get actove interface")
+        return (None, None, None)
+        
+       
 
-        active_interface = gateways['default'][netifaces.AF_INET][1]
-        addrs = netifaces.ifaddresses(active_interface)
-
-        if netifaces.AF_INET in addrs:
-            ip_info = addrs[netifaces.AF_INET][0]
-            ip = ip_info.get('addr')
-            netmask = ip_info.get('netmask')
-
-            if ip and netmask and ip != '127.0.0.1':
-                return (active_interface, ip, netmask)
-
-        return None
-
-    except Exception as e:
-        print(f"Erreur: {e}")
-        return None
-
+    
 
 def get_mac():
     mac_address = get_mac_address()
