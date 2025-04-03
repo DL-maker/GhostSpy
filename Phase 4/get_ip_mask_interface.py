@@ -5,28 +5,28 @@ import psutil
 
 def get_active_internet_interface():
     """
-    Определяет активный интерфейс подключения к интернету
-    Возвращает имя активного интерфейса или None, если активное подключение не найдено
+    Détermine l'interface active connectée à Internet
+    Retourne le nom de l'interface active ou None si aucune connexion active n'est trouvée
     """
     try:
-        # Проверяем все интерфейсы с помощью psutil
+        # Vérifie toutes les interfaces avec psutil
         net_if_addrs = psutil.net_if_addrs()
         net_if_stats = psutil.net_if_stats()
         
-        # Сначала проверяем проводные подключения, потом беспроводные (приоритет Ethernet)
+        # Vérifie d'abord les connexions filaires, puis sans fil (priorité Ethernet)
         ethernet_interfaces = []
         wifi_interfaces = []
         
         for interface, stats in net_if_stats.items():
-            # Пропускаем выключенные интерфейсы и локальный loopback
+            # Ignore les interfaces désactivées et le loopback local
             if not stats.isup or interface.lower() == 'lo' or 'loopback' in interface.lower():
                 continue
                 
-            # Проверяем наличие IP-адреса (кроме localhost)
+            # Vérifie la présence d'une adresse IP (sauf localhost)
             has_valid_ip = False
             if interface in net_if_addrs:
                 for addr in net_if_addrs[interface]:
-                    # Проверяем только IPv4 адреса (AF_INET = 2 для IPv4)
+                    # Vérifie uniquement les adresses IPv4 (AF_INET = 2 pour IPv4)
                     if addr.family == 2 and addr.address != '127.0.0.1':
                         has_valid_ip = True
                         break
@@ -34,13 +34,13 @@ def get_active_internet_interface():
             if not has_valid_ip:
                 continue
                 
-            # Если интерфейс активен и имеет IP, добавляем его в соответствующий список
+            # Si l'interface est active et a une IP, l'ajouter à la liste correspondante
             if any(eth_id in interface.lower() for eth_id in ['eth', 'en', 'eno', 'enp']):
                 ethernet_interfaces.append(interface)
             elif any(wifi_id in interface.lower() for wifi_id in ['wlan', 'wi-fi', 'wireless', 'wl', 'wifi']):
                 wifi_interfaces.append(interface)
         
-        # Возвращаем интерфейс согласно приоритету: сначала Ethernet, потом Wi-Fi
+        # Retourne l'interface selon la priorité : d'abord Ethernet, puis Wi-Fi
         if ethernet_interfaces:
             return ethernet_interfaces[0]
         elif wifi_interfaces:
@@ -48,11 +48,11 @@ def get_active_internet_interface():
             
         return None
     except Exception as e:
-        print(f"Ошибка при определении активного интерфейса: {e}")
+        print(f"Erreur lors de la détection de l'interface active : {e}")
         return None
 
 def get_network_info(interface):
-    """Получает сетевую информацию указанного интерфейса"""
+    """Récupère les informations réseau de l'interface spécifiée"""
     try:
         if platform.system() == 'Windows':
             result = subprocess.check_output([
@@ -79,18 +79,18 @@ def get_network_info(interface):
             
             info = {
                 'ip': None,
-                'subnet_mask': '255.255.255.0'  # Стандартная маска по умолчанию
+                'subnet_mask': '255.255.255.0'  # Masque par défaut standard
             }
             
             for line in result.split('\n'):
                 if 'inet ' in line:
                     parts = line.split()
                     if len(parts) > 1:
-                        # Извлекаем IP-адрес и префикс CIDR
+                        # Extrait l'adresse IP et le préfixe CIDR
                         ip_with_cidr = parts[1]
                         if '/' in ip_with_cidr:
                             info['ip'] = ip_with_cidr.split('/')[0]
-                            # Преобразуем префикс CIDR в маску подсети
+                            # Convertit le préfixe CIDR en masque de sous-réseau
                             cidr = int(ip_with_cidr.split('/')[1])
                             info['subnet_mask'] = cidr_to_netmask(cidr)
                         else:
@@ -98,36 +98,35 @@ def get_network_info(interface):
         
         return info
     except Exception as e:
-        print(f"Ошибка при получении сетевой информации для {interface}: {e}")
+        print(f"Erreur lors de la récupération des informations réseau pour {interface} : {e}")
         return None
 
 def cidr_to_netmask(cidr):
-    """Преобразует префикс CIDR в маску подсети"""
+    """Convertit un préfixe CIDR en masque de sous-réseau"""
     binary = ('1' * cidr).ljust(32, '0')
     octets = [binary[i:i+8] for i in range(0, 32, 8)]
     return '.'.join(str(int(octet, 2)) for octet in octets)
 
 def get_interface_info():
     """
-    Возвращает словарь с информацией об активном сетевом интерфейсе:
-    - имя интерфейса
-    - IP-адрес
-    - маска подсети
-    - тип подключения (Wi-Fi или Ethernet)
+    Retourne un dictionnaire avec les informations sur l'interface réseau active :
+    - nom de l'interface
+    - adresse IP
+    - masque de sous-réseau
+    - type de connexion (Wi-Fi ou Ethernet)
     """
     try:
-        # Получаем активный интерфейс
+        # Récupère l'interface active
         active_interface = get_active_internet_interface()
         
         if not active_interface:
             return None
             
-        # Получаем информацию об интерфейсе
+        # Récupère les informations sur l'interface
         info = None
         
-        # Для Windows используем индекс интерфейса
+        # Pour Windows, utilise l'index de l'interface
         if platform.system() == 'Windows':
-            # Преобразуем имя интерфейса в индекс для Windows
             interfaces_output = subprocess.check_output(['wmic', 'nic', 'get', 'Name,Index']).decode(errors='ignore').strip()
             for line in interfaces_output.split('\n'):
                 if active_interface in line:
@@ -138,11 +137,11 @@ def get_interface_info():
                         if info and info['ip']:
                             break
         else:
-            # Для Linux используем имя интерфейса напрямую
+            # Pour Linux, utilise directement le nom de l'interface
             info = get_network_info(active_interface)
             
         if info and info['ip']:
-            # Определяем тип подключения
+            # Détermine le type de connexion
             connection_type = "Ethernet" if any(eth_id in active_interface.lower() for eth_id in ['eth', 'en', 'eno', 'enp']) else "Wi-Fi"
             
             return {
@@ -155,17 +154,17 @@ def get_interface_info():
         return None
     
     except Exception as e:
-        print(f"Ошибка при получении информации об интерфейсе: {e}")
+        print(f"Erreur lors de la récupération des informations sur l'interface : {e}")
         return None
 
-# Пример использования, выполняется только при прямом запуске файла
+# Exemple d'utilisation, exécuté uniquement si le fichier est lancé directement
 if __name__ == "__main__":
     interface_info = get_interface_info()
     if interface_info:
-        print("=== Информация о сетевом интерфейсе ===")
-        print(f"Интерфейс: {interface_info['interface']}")
-        print(f"Тип подключения: {interface_info['connection_type']}")
-        print(f"IP-адрес: {interface_info['ip']}")
-        print(f"Маска подсети: {interface_info['subnet_mask']}")
+        print("=== Informations sur l'interface réseau ===")
+        print(f"Interface : {interface_info['interface']}")
+        print(f"Type de connexion : {interface_info['connection_type']}")
+        print(f"Adresse IP : {interface_info['ip']}")
+        print(f"Masque de sous-réseau : {interface_info['subnet_mask']}")
     else:
-        print("Не удалось получить информацию о сетевом интерфейсе")
+        print("Impossible de récupérer les informations sur l'interface réseau")
