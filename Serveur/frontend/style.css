@@ -8,7 +8,7 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 .client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px;}
 .client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
 
-.device-page {background-color:  #edf5ff; padding: 20px; }
+.device-page {background-color:  #edf5ff; padding: 20px; }
 .device-page button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #7d8ceb; color: white; cursor: pointer; margin-left: 10px;}
 .device-page input { padding: 8px; border-radius: 5px; border-width: 1px; width: 65%; margin: 10px; outline: none;}
 .device-page h2, h3 { margin: 10px; }
@@ -214,4 +214,177 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Styles pour la zone des logs */
+.logs-area {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 6px rgba(139, 169, 204, 0.1);
+}
+
+.logs-area h3 {
+    margin-bottom: 15px;
+    color: #4a5568;
+}
+
+.logs-filter {
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.logs-filter label {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f0f5ff;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.logs-filter label:hover {
+    background-color: #e6eeff;
+}
+
+.logs-filter input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+.logs-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eaedf2;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f8faff;
+}
+
+.log-entry {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s;
+}
+
+.log-entry:hover {
+    background-color: #f0f5ff;
+}
+
+.log-entry-file {
+    border-left-color: #10b981;
+}
+
+.log-entry-folder {
+    border-left-color: #3b82f6;
+}
+
+.log-entry-exe {
+    border-left-color: #ef4444;
+}
+
+.log-entry-warning {
+    background-color: #fff8e6;
+    border-left-color: #f59e0b;
+}
+
+.log-time {
+    color: #64748b;
+    margin-right: 8px;
+    font-family: monospace;
+}
+
+.log-type {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.log-type-created { color: #10b981; }
+.log-type-modified { color: #3b82f6; }
+.log-type-deleted { color: #ef4444; }
+.log-type-moved { color: #8b5cf6; }
+
+.log-name {
+    font-weight: 500;
+}
+
+.log-path {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 4px;
+    font-family: monospace;
+}
+
+.log-warning {
+    color: #d97706;
+    margin-top: 5px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.log-warning::before {
+    content: "⚠️";
+    margin-right: 5px;
+}
+
+/* Styles pour la zone de scan de malware */
+.malware-scan-area {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 6px rgba(139, 169, 204, 0.1);
+}
+
+.malware-scan-area h3 {
+    margin-bottom: 15px;
+    color: #4a5568;
+}
+
+.scan-result {
+    background-color: #f8faff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #3b82f6;
+}
+
+.scan-result.malicious {
+    background-color: #fff5f5;
+    border-left-color: #e53e3e;
+}
+
+.scan-result.clean {
+    border-left-color: #38a169;
+    background-color: #f0fff4;
+}
+
+.scan-result h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #4a5568;
+    font-size: 16px;
+}
+
+.scan-result p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.scan-result.malicious h4 {
+    color: #e53e3e;
+}
+
+.scan-result.clean h4 {
+    color: #38a169;
 }

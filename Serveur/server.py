@@ -7,14 +7,37 @@ from PIL import Image
 import time
 import os
 import threading
+import requests
+import logging
+from datetime import datetime
+import colorama
+from queue import Queue
+import uuid
+import hashlib
 
 app = Flask(__name__)
 
-DATABASE = 'clients.db'
+DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'clients.db')
 SCREENSHOT_FOLDER = 'screenshots'
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), SCREENSHOT_FOLDER)
 TIMEOUT_SECONDES = 60  # Définir le délai après lequel un client est considéré comme déconnecté (ici 60 secondes)
+LOG_FILE = "server.log"  # Utiliser un fichier de log différent pour le serveur
 
+# Initialisation de colorama pour un affichage coloré (peut être supprimé si non nécessaire sur le serveur)
+colorama.init(autoreset=True)
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(LOG_FILE, encoding='utf-8'),
+            logging.StreamHandler()
+        ]
+    )
+
+setup_logging()
+logger = logging.getLogger('ServerApp')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -159,13 +182,13 @@ def receive_command_result(client_id):
     data = request.get_json()
     if not data:
         return jsonify({'message': 'Données invalides'}), 400
-    
+
     conn = get_db_connection()
-    conn.execute('UPDATE clients SET command_output = ? WHERE id = ?', 
-                (json.dumps(data), client_id))
+    conn.execute('UPDATE clients SET command_output = ? WHERE id = ?',
+                 (json.dumps(data), client_id))
     conn.commit()
     conn.close()
-    
+
     return jsonify({'message': 'Résultat de commande enregistré'}), 200
 
 @app.route('/client/<int:client_id>/commandresult', methods=['GET'])
@@ -173,29 +196,56 @@ def get_command_result(client_id):
     conn = get_db_connection()
     client = conn.execute('SELECT command_output FROM clients WHERE id = ?', (client_id,)).fetchone()
     conn.close()
-    
+
     if client and client['command_output']:
         return jsonify({'output': json.loads(client['command_output'])}), 200
     else:
         return jsonify({'output': None}), 200
 
+@app.route('/client/<int:client_id>/logs', methods=['POST'])
+def receive_logs(client_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET logs = ? WHERE id = ?',
+                 (json.dumps(data), client_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Logs enregistrés'}), 200
+
+@app.route('/client/<int:client_id>/logs', methods=['GET'])
+def get_logs(client_id):
+    conn = get_db_connection()
+    client = conn.execute('SELECT logs FROM clients WHERE id = ?', (client_id,)).fetchone()
+    conn.close()
+
+    if client and client['logs']:
+        return jsonify({'logs': json.loads(client['logs'])}), 200
+    else:
+        return jsonify({'logs': []}), 200
+
 def verifier_deconnexions():
     """Fonction exécutée périodiquement pour vérifier si des clients sont déconnectés."""
-    with app.app_context(): # Créer un contexte d'application Flask pour accéder à la base de données
-        conn = get_db_connection()
-        clients = conn.execute('SELECT id, last_checkin, is_connected FROM clients').fetchall()
-        now = int(time.time())
+    with app.app_context():
+        try:
+            conn = get_db_connection()
+            clients = conn.execute('SELECT id, last_checkin, is_connected FROM clients').fetchall()
+            now = int(time.time())
 
-        for client in clients:
-            if client['is_connected']: # Vérifier uniquement les clients actuellement marqués comme connectés
-                last_checkin_time = client['last_checkin']
-                if last_checkin_time is not None and (now - last_checkin_time) > TIMEOUT_SECONDES:
-                    # Si le dernier check-in est plus vieux que le délai, on considère le client comme déconnecté
-                    conn.execute('UPDATE clients SET is_connected = ? WHERE id = ?', (False, client['id']))
-                    print(f"Client ID {client['id']} considéré comme déconnecté (timeout)") # Log pour le débogage
+            for client in clients:
+                if client['is_connected']:
+                    last_checkin_time = client['last_checkin']
+                    if last_checkin_time is not None and (now - last_checkin_time) > TIMEOUT_SECONDES:
+                        conn.execute('UPDATE clients SET is_connected = ? WHERE id = ?', (False, client['id']))
+                        app.logger.info(f"Client {client['id']} marqué comme déconnecté (timeout)")
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            app.logger.error(f"Erreur dans verifier_deconnexions: {str(e)}")
 
 def demarrer_verificateur_deconnexions():
     """Démarre une tâche de fond qui vérifie les déconnexions périodiquement."""
@@ -213,26 +263,89 @@ def receive_resources(client_id):
     data = request.get_json()
     if not data:
         return jsonify({'message': 'Données invalides'}), 400
-    
+
     conn = get_db_connection()
-    conn.execute('UPDATE clients SET resources = ? WHERE id = ?', 
-                (json.dumps(data), client_id))
+    conn.execute('UPDATE clients SET resources = ? WHERE id = ?',
+                 (json.dumps(data), client_id))
     conn.commit()
     conn.close()
-    
-    return jsonify({'message': 'Données de ressources système enregistrées'}), 200
+
+    return jsonify({'message': 'Ressources enregistrées'}), 200
 
 @app.route('/client/<int:client_id>/resources', methods=['GET'])
 def get_resources(client_id):
     conn = get_db_connection()
     client = conn.execute('SELECT resources FROM clients WHERE id = ?', (client_id,)).fetchone()
     conn.close()
-    
+
     if client and client['resources']:
         return jsonify({'resources': json.loads(client['resources'])}), 200
     else:
         return jsonify({'resources': None}), 200
 
+@app.route('/client/<int:client_id>/scan_file', methods=['POST'])
+def scan_file(client_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+
+    # Store file information without external scanning
+    file_info = {
+        'file_name': data.get('file_name', 'Unknown file'),
+        'file_path': data.get('file_path', ''),
+        'file_size': data.get('file_size', 0),
+        'scan_date': datetime.now().isoformat(),
+        'is_suspicious': data.get('is_suspicious', False),
+        'scan_result': 'Analyse locale uniquement'
+    }
+
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET scan_file = ? WHERE id = ?',
+                 (json.dumps(file_info), client_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Informations sur le fichier enregistrées'}), 200
+
+@app.route('/client/<int:client_id>/scan_file', methods=['GET'])
+def get_scan_file(client_id):
+    conn = get_db_connection()
+    client = conn.execute('SELECT scan_file FROM clients WHERE id = ?', (client_id,)).fetchone()
+    conn.close()
+
+    if client and client['scan_file']:
+        return jsonify({'scan_file': json.loads(client['scan_file'])}), 200
+    else:
+        return jsonify({'scan_file': None}), 200
+
+@app.route('/client/<int:client_id>/scan_file', methods=['DELETE'])
+def delete_scan_file(client_id):
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET scan_file = ? WHERE id = ?', (None, client_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Scan file deleted'}), 200
+
+@app.route('/client/<int:client_id>/scan_file', methods=['PUT'])
+def update_scan_file(client_id):
+    data = request.get_json()
+    if not data or 'scan_file' not in data:
+        return jsonify({'message': 'Données invalides'}), 400
+
+    scan_file = data['scan_file']
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET scan_file = ? WHERE id = ?', (json.dumps(scan_file), client_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Scan file updated'}), 200
+
 if __name__ == '__main__':
-    demarrer_verificateur_deconnexions() # Démarrer le vérificateur de déconnexions au lancement du serveur
-    app.run(host='0.0.0.0', debug=True) # debug=True pour le développement, à retirer en production
+    if not os.path.exists(DATABASE):
+        print("Initialisation de la base de données...")
+        init_db()
+
+    demarrer_verificateur_deconnexions()
+    app.run(host='0.0.0.0', debug=True)
+
