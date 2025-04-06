@@ -458,4 +458,112 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+    
+    function loadScanResults(clientId) {
+        fetch(`/client/${clientId}/scan_results`)
+            .then(response => response.json())
+            .then(data => {
+                const scanResultsContainer = document.getElementById('scan-results-container');
+                scanResultsContainer.innerHTML = '';
+                
+                if (data.malicious_files && data.malicious_files.length > 0) {
+                    // Display malicious files first
+                    const malwareHeader = document.createElement('div');
+                    malwareHeader.className = 'malware-warning';
+                    malwareHeader.innerHTML = `<h4>⚠️ ${data.malicious_files.length} fichier(s) malveillant(s) détecté(s)</h4>`;
+                    scanResultsContainer.appendChild(malwareHeader);
+                    
+                    data.malicious_files.forEach(file => {
+                        const fileElement = createScanResultElement(file, true);
+                        scanResultsContainer.appendChild(fileElement);
+                    });
+                }
+                
+                // Display all recent scans
+                if (data.scan_results && data.scan_results.length > 0) {
+                    const recentHeader = document.createElement('div');
+                    recentHeader.className = 'recent-scans-header';
+                    recentHeader.innerHTML = '<h4>Scans récents</h4>';
+                    scanResultsContainer.appendChild(recentHeader);
+                    
+                    data.scan_results.forEach(file => {
+                        // Avoid repeating malicious files already displayed
+                        if (!file.is_malicious) {
+                            const fileElement = createScanResultElement(file, false);
+                            scanResultsContainer.appendChild(fileElement);
+                        }
+                    });
+                } else {
+                    scanResultsContainer.innerHTML = '<p>Aucun fichier scanné récemment</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des résultats de scan:', error);
+                document.getElementById('scan-results-container').innerHTML = 
+                    '<p>Erreur lors du chargement des résultats de scan</p>';
+            });
+    }
+
+    function createScanResultElement(fileData, isHighlighted) {
+        const fileElement = document.createElement('div');
+        fileElement.className = `scan-result ${isHighlighted ? 'malicious' : 'safe'}`;
+        
+        // Format the date
+        const scanDate = new Date(fileData.scan_date);
+        const formattedDate = scanDate.toLocaleString();
+        
+        // Detections
+        const detections = fileData.details && fileData.details.detections ? fileData.details.detections : 0;
+        const totalEngines = fileData.details && fileData.details.total ? fileData.details.total : 0;
+        
+        // Build the display content
+        let contentHTML = `
+            <div class="file-info">
+                <div class="file-name">${fileData.file_name}</div>
+                <div class="file-path">${fileData.path || ''}</div>
+                <div class="scan-date">Scanné le: ${formattedDate}</div>
+            </div>
+            <div class="scan-status">
+        `;
+        
+        if (fileData.is_malicious) {
+            contentHTML += `<div class="status-icon malicious">☠️</div>
+                           <div class="status-text">Malveillant (${detections}/${totalEngines})</div>`;
+        } else {
+            contentHTML += `<div class="status-icon safe">✅</div>
+                           <div class="status-text">Sécurisé (0/${totalEngines})</div>`;
+        }
+        
+        contentHTML += `</div>`;
+        fileElement.innerHTML = contentHTML;
+        
+        return fileElement;
+    }
+
+    // Integrate scan results into client details view
+    function loadClientDetails(clientId) {
+        // ...existing code...
+
+        // Load scan results
+        loadScanResults(clientId);
+        
+        // Set an interval to refresh scan results periodically
+        if (window.scanResultsInterval) {
+            clearInterval(window.scanResultsInterval);
+        }
+        window.scanResultsInterval = setInterval(() => {
+            loadScanResults(clientId);
+        }, 30000); // Refresh every 30 seconds
+    }
+
+    // Stop the scan results interval when returning to the client list
+    document.getElementById('back-to-list-button').addEventListener('click', function() {
+        // ...existing code...
+
+        // Stop the scan results update interval
+        if (window.scanResultsInterval) {
+            clearInterval(window.scanResultsInterval);
+            window.scanResultsInterval = null;
+        }
+    });
 });

@@ -11,5 +11,7 @@ CREATE TABLE IF NOT EXISTS clients (
   command_output TEXT,
   logs TEXT,
   resources TEXT,
-  scan_file TEXT
+  scan_file TEXT,
+  vt_scan_results TEXT,
+  malicious_files TEXT
 );

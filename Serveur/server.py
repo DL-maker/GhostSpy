@@ -21,7 +21,7 @@ DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'clients.db'
 SCREENSHOT_FOLDER = 'screenshots'
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), SCREENSHOT_FOLDER)
 TIMEOUT_SECONDES = 60  # Définir le délai après lequel un client est considéré comme déconnecté (ici 60 secondes)
-LOG_FILE = "server.log"  # Utiliser un fichier de log différent pour le serveur
+LOG_FILE = os.path.join(os.path.expanduser("~"), "server.log")  # Utiliser un fichier de log différent pour le serveur
 
 # Initialisation de colorama pour un affichage coloré (peut être supprimé si non nécessaire sur le serveur)
 colorama.init(autoreset=True)
@@ -206,15 +206,23 @@ def get_command_result(client_id):
 def receive_logs(client_id):
     data = request.get_json()
     if not data:
+        app.logger.warning(f"Reçu des données invalides pour les logs du client {client_id}")
         return jsonify({'message': 'Données invalides'}), 400
 
-    conn = get_db_connection()
-    conn.execute('UPDATE clients SET logs = ? WHERE id = ?',
-                 (json.dumps(data), client_id))
-    conn.commit()
-    conn.close()
-
-    return jsonify({'message': 'Logs enregistrés'}), 200
+    # Ajoutons des logs de débogage
+    app.logger.info(f"Reçu logs pour client {client_id}: {data}")
+    
+    try:
+        conn = get_db_connection()
+        conn.execute('UPDATE clients SET logs = ? WHERE id = ?',
+                     (json.dumps(data), client_id))
+        conn.commit()
+        conn.close()
+        app.logger.info(f"Logs enregistrés avec succès pour le client {client_id}")
+        return jsonify({'message': 'Logs enregistrés'}), 200
+    except Exception as e:
+        app.logger.error(f"Erreur lors de l'enregistrement des logs pour le client {client_id}: {str(e)}")
+        return jsonify({'message': f'Erreur serveur: {str(e)}'}), 500
 
 @app.route('/client/<int:client_id>/logs', methods=['GET'])
 def get_logs(client_id):
@@ -326,6 +334,57 @@ def delete_scan_file(client_id):
     conn.close()
 
     return jsonify({'message': 'Scan file deleted'}), 200
+
+# Ajouter cette route au fichier serveur.py
+
+@app.route('/client/<int:client_id>/scan_results', methods=['POST'])
+def receive_scan_results(client_id):
+    try:
+        data = request.get_json()
+        if not data or 'results' not in data:
+            return jsonify({'message': 'Données invalides'}), 400
+
+        # Journaliser pour le débogage
+        app.logger.info(f"Reçu résultats scan pour client {client_id}: {len(data['results'])} entrées")
+        
+        conn = get_db_connection()
+        
+        # Stocker les résultats complets
+        conn.execute('UPDATE clients SET vt_scan_results = ? WHERE id = ?',
+                     (json.dumps(data['results']), client_id))
+        
+        # Traiter les fichiers malveillants pour les mettre en évidence
+        malicious_files = [result for result in data['results'] if result.get('is_malicious', False)]
+        
+        if malicious_files:
+            conn.execute('UPDATE clients SET malicious_files = ? WHERE id = ?',
+                         (json.dumps(malicious_files), client_id))
+        
+        conn.commit()
+        conn.close()
+
+        return jsonify({'message': 'Résultats de scan VirusTotal enregistrés'}), 200
+    except Exception as e:
+        app.logger.error(f"Erreur lors du traitement des résultats de scan: {str(e)}")
+        return jsonify({'message': f'Erreur serveur: {str(e)}'}), 500
+
+@app.route('/client/<int:client_id>/scan_results', methods=['GET'])
+def get_scan_results(client_id):
+    conn = get_db_connection()
+    client = conn.execute('SELECT vt_scan_results, malicious_files FROM clients WHERE id = ?', (client_id,)).fetchone()
+    conn.close()
+
+    response = {
+        'scan_results': json.loads(client['vt_scan_results']) if client and client['vt_scan_results'] else [],
+        'malicious_files': json.loads(client['malicious_files']) if client and client['malicious_files'] else []
+    }
+    
+    return jsonify(response), 200
+
+# Assurez-vous d'ajouter les nouvelles colonnes à votre schéma SQL
+# Dans schema.sql, ajoutez:
+#   vt_scan_results TEXT,
+#   malicious_files TEXT,
 
 @app.route('/client/<int:client_id>/scan_file', methods=['PUT'])
 def update_scan_file(client_id):

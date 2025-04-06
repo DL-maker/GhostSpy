@@ -388,3 +388,123 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 .scan-result.clean h4 {
     color: #38a169;
 }
+
+.malware-scan-area {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.malware-scan-area h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 18px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.scan-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background-color: #fff;
+    border-left: 4px solid transparent;
+}
+
+.scan-result.malicious {
+    border-left-color: #ff4d4f;
+    background-color: rgba(255, 77, 79, 0.05);
+}
+
+.scan-result.safe {
+    border-left-color: #52c41a;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.file-path {
+    font-size: 12px;
+    color: #888;
+    margin-top: 3px;
+    word-break: break-all;
+}
+
+.scan-date {
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.scan-status {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.status-icon {
+    font-size: 18px;
+    margin-right: 5px;
+}
+
+.status-text {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.status-text.malicious {
+    color: #ff4d4f;
+}
+
+.status-text.safe {
+    color: #52c41a;
+}
+
+.malware-warning {
+    background-color: rgba(255, 77, 79, 0.1);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 15px;
+}
+
+.malware-warning h4 {
+    color: #ff4d4f;
+    margin: 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.recent-scans-header {
+    margin: 15px 0 10px;
+}
+
+.recent-scans-header h4 {
+    color: #333;
+    font-size: 15px;
+    margin: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Ajouter une animation pour les nouveaux résultats */
+@keyframes newScanHighlight {
+    0% { background-color: rgba(82, 196, 26, 0.2); }
+    100% { background-color: transparent; }
+}
+
+.scan-result.new {
+    animation: newScanHighlight 2s ease-out;
+}
