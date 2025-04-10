@@ -12,23 +12,15 @@ import ipaddress
 import nmap
 
 
-def get_network_address():
-    for interface, addrs in psutil.net_if_addrs().items():
-        for addr in addrs:
-            if addr.family == 2:  # IPv4
-                if interface != 'lo':
-                    ip = addr.address
-                    netmask = None
-                    for mask in addrs:
-                        if mask.family == 2:
-                            netmask = mask.netmask
-                            break
+def get_network_address(ip, netmask):
+    try:
+       
+        network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
 
-                    if netmask:
-                        network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-                        return f"{network.network_address}/{network.prefixlen}"
+        return f"{network.network_address}/{network.prefixlen}"
+    except ValueError as e:
+        return f"Error: {e}"
 
-    return None
 
 def get_active_interface() -> tuple:
     network_info = get_ip_mask_interface.get_interface_info()
@@ -36,6 +28,7 @@ def get_active_interface() -> tuple:
         active_interface = network_info['interface']
         ip = network_info['ip'] 
         netmask = network_info['subnet_mask']
+       
         return (active_interface, ip, netmask)
     else:
         print("Error with get actove interface")
@@ -109,7 +102,7 @@ def analyser_reseau(ip_avec_masque):
             resultat = get_active_interface()
             interface, ip, masque = resultat
 
-            print(f"Votre Adresse Réseau: {get_network_address()}")
+           
             print(f"Votre Adresse IP: {ip}")
             print(f"Votre Masque Réseau: {masque}")
             print(f"Votre MAC Adresse: {get_mac()}")
@@ -212,15 +205,14 @@ SERVICE_DICT = {
 
 
 if __name__ == "__main__":
-
     resultat = get_active_interface()
     if resultat:
         interface, ip, masque = resultat
-        print(f"Votre Adresse Réseau: {get_network_address()}")
+        address_network = get_network_address(ip, masque)  
         print(f"Votre Interface Active: {interface}")
         print(f"Votre Adresse IP: {ip}")
         print(f"Votre Masque Réseau: {masque}")
         print(f"Votre MAC Adresse: {get_mac()}")
-        analyser_reseau(get_network_address())
+        analyser_reseau(get_network_address(ip, masque))  
     else:
-        print("Aucune i nterface active trouvée")
+        print("Aucune interface active trouvée")

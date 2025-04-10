@@ -55,22 +55,29 @@ def get_network_info(interface):
     """Récupère les informations réseau de l'interface spécifiée"""
     try:
         if platform.system() == 'Windows':
-            result = subprocess.check_output([
-                'wmic', 'nicconfig', 'where', f'index={interface}',
-                'get', 'IPAddress,IPSubnet'
-            ]).decode(errors='ignore').strip()
+            # Utilisation de ipconfig pour Windows au lieu de wmic
+            result = subprocess.check_output(['ipconfig', '/all'], shell=True).decode('cp1252', errors='ignore')
             
             info = {
                 'ip': None,
                 'subnet_mask': None
             }
             
-            for line in result.split('\n'):
-                if '.' in line:
-                    parts = line.split()
-                    if len(parts) > 1:
-                        info['ip'] = parts[0]
-                        info['subnet_mask'] = parts[1]
+            # Trouver les sections spécifiques à l'interface
+            sections = result.split('\n\n')
+            for section in sections:
+                if interface.lower() in section.lower():
+                    # Rechercher l'adresse IPv4
+                    ip_match = re.search(r'IPv4.+?:\s+(\d+\.\d+\.\d+\.\d+)', section)
+                    mask_match = re.search(r'Subnet Mask.+?:\s+(\d+\.\d+\.\d+\.\d+)', section)
+                    
+                    if ip_match:
+                        info['ip'] = ip_match.group(1)
+                    if mask_match:
+                        info['subnet_mask'] = mask_match.group(1)
+                    
+                    # Si on a trouvé les informations, on sort de la boucle
+                    if info['ip'] and info['subnet_mask']:
                         break
         else:
             result = subprocess.check_output([
@@ -123,19 +130,9 @@ def get_interface_info():
             return None
             
         # Récupère les informations sur l'interface
-        info = None
-        
-        # Pour Windows, utilise l'index de l'interface
         if platform.system() == 'Windows':
-            interfaces_output = subprocess.check_output(['wmic', 'nic', 'get', 'Name,Index']).decode(errors='ignore').strip()
-            for line in interfaces_output.split('\n'):
-                if active_interface in line:
-                    parts = line.split()
-                    if parts:
-                        index = parts[0]
-                        info = get_network_info(index)
-                        if info and info['ip']:
-                            break
+            # Pour Windows, on utilise directement le nom de l'interface avec la nouvelle fonction
+            info = get_network_info(active_interface)
         else:
             # Pour Linux, utilise directement le nom de l'interface
             info = get_network_info(active_interface)
