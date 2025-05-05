@@ -6,9 +6,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const deviceNameHeader = document.getElementById('device-name-header');
     const commandInput = document.getElementById('command-input');
     const executeCommandButton = document.getElementById('execute-command-button');
+    const executeAPIbutton = document.getElementById('execute-api-button');
     const commandOutputDiv = document.getElementById('command-output');
     const connectedCountSpan = document.getElementById('connected-count');
     const disconnectedCountSpan = document.getElementById('disconnected-count');
+    const apiInput = document.getElementById('api-input');
 
     let currentClientId = null;
     let screenshotPollingInterval;
@@ -144,6 +146,59 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
     });
+
+
+    executeAPIbutton.addEventListener('click', function() {
+        const token = apiInput.value;
+        if (token && currentClientId) {
+            const commandOutput = document.getElementById('api-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header">
+                    <div class="command-spinner"></div>
+                    Exécution de la commande: <span style="color: #38bdf8">${token}</span>
+                </div>
+                <p>Veuillez patienter...</p>
+            `;
+            console.log(123)
+            fetch(`/client/${currentClientId}/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: token })
+            })
+            .then(response => response.json())
+           
+            .then(data => {
+                console.log("OK")
+                setTimeout(() => {
+                    commandOutput.innerHTML ='<p>Api mis a jour</p>'
+                }, 2000);
+                commandInput.value = '';
+            })
+
+            .catch(error =>{ console.log("Error")
+                commandOutput.innerHTML = `
+                    <div class="command-header" style="color: #fb7185">
+                        Erreur lors de l'envoi de la commande
+                    </div>
+                    <p>${error.message || 'Une erreur est survenue'}</p>
+                `;
+            });
+        } else {
+            const commandOutput = document.getElementById('api-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">
+                    Erreur
+                </div>
+                <p>Veuillez entrer une commande et sélectionner un appareil.</p>
+            `;
+        }
+    });
+
+
 
     function checkCommandResult(clientId) {
         fetch(`/client/${clientId}/commandresult`)

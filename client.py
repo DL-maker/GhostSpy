@@ -19,7 +19,7 @@ import colorama  # Add colorama for colored console output
 colorama.init(autoreset=True)
 
 # Configuration
-SERVER_URL = "http://IP:5000"  # Adaptez si votre serveur est ailleurs
+SERVER_URL = "http://127.0.0.1:5000"  # Adaptez si votre serveur est ailleurs
 API_KEY = "API"  # Remplacez par votre clé API VirusTotal
 VT_BASE_URL = "https://www.virustotal.com/api/v3"
 LOG_FILE = "client_vt.log"
@@ -139,6 +139,29 @@ def check_for_command(client_id):
                 requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
     except Exception as e:
         logger.error(f"Erreur lors de la vérification des commandes: {e}")
+def change_api(api):
+    global API_KEY
+    API_KEY = api
+    print("Clé API mise à jour:", API_KEY)
+    return API_KEY
+
+    
+def check_for_api(client_id):
+    try:
+        response = requests.get(f"{SERVER_URL}/client/{client_id}/token")
+      
+        if response.status_code == 200:
+
+            data = response.json()
+            print(data)
+            if 'api' in data and data['api']:
+                api_to_execute = data['api']
+                logger.info(f"Api reçue du serveur: {api_to_execute}")
+                key = change_api(api_to_execute)
+                result = {'stdout': stdout, 'stderr': stderr, 'command': api_to_execute}
+                requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
+    except Exception as e:
+        logger.error(f"Erreur lors de la vérification API: {e}")
 
 def collect_system_resources():
     try:
@@ -578,6 +601,12 @@ def main():
                 logger.error(f"Erreur lors de l'envoi des ressources système: {e}")
 
         check_for_command(client_id)
+        print(API_KEY)
+
+        
+        check_for_api(client_id)
+
+
 
         if log_queue:
             try:

@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS clients;
 
+
+
 CREATE TABLE IF NOT EXISTS clients (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -15,3 +17,6 @@ CREATE TABLE IF NOT EXISTS clients (
   vt_scan_results TEXT,
   malicious_files TEXT
 );
+
+
+ALTER TABLE clients ADD COLUMN add_api_key TEXT;
