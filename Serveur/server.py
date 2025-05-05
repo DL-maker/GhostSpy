@@ -113,6 +113,24 @@ def execute_command_on_client(client_id):
     conn.close()
     return jsonify({'message': 'Commande enregistrée pour exécution par le client'}), 200
 
+@app.route('/client/<int:client_id>/token', methods=['POST'])
+def Put_API_on_client(client_id):
+    data = request.get_json()
+    if not data or 'token' not in data:
+        return jsonify({'message': 'API non spécifiée'}), 400
+
+    token = data['token']
+    print(token)
+    conn = get_db_connection()
+    conn.execute('UPDATE clients SET add_api_key = ? WHERE id = ?', (token, client_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'API enregistrée pour exécution par le client'}), 200
+
+
+
+
+
 @app.route('/client/<int:client_id>/getcommand', methods=['GET'])
 def get_command_for_client(client_id):
     """Récupère la commande à exécuter pour un client et la supprime de la base de données."""
@@ -129,6 +147,27 @@ def get_command_for_client(client_id):
     else:
         conn.close()
         return jsonify({'command': None}), 200
+
+
+@app.route('/client/<int:client_id>/token', methods=['GET'])
+def get_api_for_client(client_id):
+    """Récupère la API pour un client et la suprime de la base de données."""
+    conn = get_db_connection()
+    client = conn.execute('SELECT add_api_key FROM clients WHERE id = ?', (client_id,)).fetchone()
+    api = client['add_api_key'] if client else None
+
+    return jsonify({'api': api}), 200
+    # if command:
+    #     # Une fois la commande récupérée, on la supprime de la base de données pour ne pas la réexécuter
+    #     conn.execute('UPDATE clients SET add_api_key  = ? WHERE id = ?', (None, client_id))
+    #     conn.commit()
+    #     conn.close()
+    #     return jsonify({'api': api}), 200
+    # else:
+    #     conn.close()
+    #     return jsonify({'api': None}), 200
+
+
 
 @app.route('/client/<int:client_id>/disconnect', methods=['POST'])
 def disconnect_client(client_id):
