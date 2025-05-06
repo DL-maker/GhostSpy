@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const deviceNameHeader = document.getElementById('device-name-header');
     const commandInput = document.getElementById('command-input');
     const executeCommandButton = document.getElementById('execute-command-button');
+    const PowerOffCommandButton = document.getElementById('PowerOff-command-button');
     const executeAPIbutton = document.getElementById('execute-api-button');
     const commandOutputDiv = document.getElementById('command-output');
     const connectedCountSpan = document.getElementById('connected-count');
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let logsPollingInterval;
     let scanResultsPollingInterval;
     let lastProcessedLogTime = null;
+    
 
     function fetchClients() {
         fetch('/clients')
@@ -43,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         disconnectedClients++;
                     }
+                os_computer = client.os_type;
                 });
                 connectedCountSpan.textContent = connectedClients;
                 disconnectedCountSpan.textContent = disconnectedClients;
@@ -140,13 +143,45 @@ document.addEventListener('DOMContentLoaded', function() {
             commandOutput.style.display = 'block';
             commandOutput.innerHTML = `
                 <div class="command-header" style="color: #fb7185">
-                    Erreur
+                    L'appareil ne réponds plus.
                 </div>
                 <p>Veuillez entrer une commande et sélectionner un appareil.</p>
             `;
         }
     });
 
+    executeCommandButton.addEventListener('click', function() {
+            const command = commandInput.value;
+            let PowerOff = "shutdown /s /t 0";
+            let os_computer;
+            switch (os_computer) {
+                case "Windows":
+                    PowerOff = "shutdown /s /t 0";
+                    break;
+                case "Linux":
+                    PowerOff = "sudo shutdown 0";
+                    break;
+                case "Darwin":
+                    PowerOff = "sudo shutdown -h now";
+                    break;
+            }
+            
+            fetch(`/client/${currentClientId}/command`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            body: JSON.stringify({ command: PowerOff })
+        })
+        .catch(error => {
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">
+                    Erreur lors de l'envoi de la commande
+                </div>
+                <p>${error.message || 'Une erreur est survenue'}</p>
+            `;
+        });
+    });
 
     executeAPIbutton.addEventListener('click', function() {
         const token = apiInput.value;
