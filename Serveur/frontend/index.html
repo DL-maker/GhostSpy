@@ -22,8 +22,7 @@
 
     <div class="device-page" id="device-page" style="display: none;">
         <h2>Surveillance de l'appareil <span id="device-name-header"></span></h2>
-        
-        <!-- Section des ressources système -->
+
         <div class="resources-area">
             <h3>Ressources système</h3>
             <div class="resource-metrics">
@@ -37,7 +36,7 @@
 
                     <div id="cpu-alert"></div>
                 </div>
-    
+
                 <div class="resource-metric">
                     <h4>RAM Usage</h4>
                     <div class="circle-container">
@@ -47,10 +46,10 @@
                     </div>
                     <div id="ram-alert"></div>
                 </div>
-    
+
             </div>
         </div>
-        
+
         <div class="screenshot-area">
             <h3>Screenshot en direct</h3>
             <img id="screenshot-display" src="" alt="Screenshot de l'appareil">
@@ -60,7 +59,38 @@
             <input type="text" id="command-input" placeholder="Commande à exécuter">
             <button id="execute-command-button">Exécuter</button>
             <div id="command-output" class="command-output"></div>
+            <button id="PowerOff-command-button">Power Off</button>
+            <button id="Freeze-command-button">Freeze</button>
+        </div>
+        <div class="logs-area">
+            <h3>Journaux d'activité</h3>
+            <div class="logs-filter">
+                <label><input type="checkbox" id="filter-file" checked> Fichiers</label>
+                <label><input type="checkbox" id="filter-folder" checked> Dossiers</label>
+                <label><input type="checkbox" id="filter-exe" checked> Exécutables</label>
+                <label><input type="checkbox" id="filter-created" checked> Création</label>
+                <label><input type="checkbox" id="filter-modified" checked> Modification</label>
+                <label><input type="checkbox" id="filter-deleted" checked> Suppression</label>
+                <label><input type="checkbox" id="filter-moved" checked> Déplacement</label>
+            </div>
+            <div class="logs-container" id="logs-container"></div>
+        </div>
+        <div class="malware-scan-area">
+            <h3>Détection de fichiers suspects</h3>
+            <div id="scan-results-container">
+                <p>Aucun fichier suspect détecté récemment</p>
+            </div>
+        </div>
+        <div class="command-area">
+            <h3>Ajout d'une clé API</h3>
+            <input type="text" id="api-input" placeholder="Insérer ici">
+            <button id="execute-api-button">Ajouter</button>
+            <div id="api-output" class="api-output"></div>
         </div>
         <button id="back-to-list-button">Retour à la liste des appareils</button>
     </div>
+
+    <script src="script.js"></script>
+    <link rel="stylesheet" href="style.css">
+</body>
 </html>
