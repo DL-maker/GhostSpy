@@ -8,7 +8,7 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 .client-block h3 { margin-top: 0; margin-bottom: 5px; margin-left: 10px;}
 .client-block button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #0086b3; color: white; cursor: pointer;}
 
-.device-page {background-color:  #edf5ff; padding: 20px; }
+.device-page {background-color:  #edf5ff; padding: 20px; }
 .device-page button { padding: 8px 22px; border: none; border-radius: 5px; background-color: #7d8ceb; color: white; cursor: pointer; margin-left: 10px;}
 .device-page input { padding: 8px; border-radius: 5px; border-width: 1px; width: 65%; margin: 10px; outline: none;}
 .device-page h2, h3 { margin: 10px; }
@@ -166,6 +166,16 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
     background-color: #3a5ce5;
 }
 
+.command-area button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.command-area button:disabled:hover {
+    background-color: #9ca3af;
+}
+
 #command-output {
     margin-top: 20px;
     padding: 15px;
@@ -177,18 +187,28 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
     max-height: 300px;
     overflow-y: auto;
     display: none; /* Caché par défaut jusqu'à ce qu'il y ait une sortie */
+    line-height: 1.4;
+    width: calc(100% - 30px); /* Ajustement de la largeur */
 }
 
 .command-stdout {
     color: #a3e635;
     margin: 0;
     padding: 10px 0;
+    width: 100%;
+    display: block;
+    font-size: 14px;
+    overflow-x: auto;
 }
 
 .command-stderr {
     color: #fb7185;
     margin: 0;
     padding: 5px 0;
+    width: 100%;
+    display: block;
+    font-size: 14px;
+    overflow-x: auto;
 }
 
 .command-header {
@@ -197,6 +217,9 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
     margin-bottom: 10px;
     border-bottom: 1px solid #475569;
     padding-bottom: 8px;
+    width: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .command-spinner {
@@ -209,6 +232,7 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
     display: inline-block;
     margin-right: 10px;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -507,4 +531,246 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 
 .scan-result.new {
     animation: newScanHighlight 2s ease-out;
+}
+
+/* Style pour les boutons de commande */
+.command-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: flex-start;
+}
+
+.command-buttons button {
+    padding: 10px 15px;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    flex: 0 0 auto;
+    transition: background-color 0.2s;
+    min-width: 120px;
+}
+
+.command-buttons button:hover {
+    background-color: #3a5ce5;
+}
+
+.command-buttons button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.command-buttons button:disabled:hover {
+    background-color: #9ca3af;
+}
+
+#PowerOff-command-button {
+    background-color: #ef4444;
+}
+
+#PowerOff-command-button:hover {
+    background-color: #dc2626;
+}
+
+#Cancel-Shutdown-button {
+    background-color: #f97316;
+}
+
+#Cancel-Shutdown-button:hover {
+    background-color: #ea580c;
+}
+
+#Freeze-command-button {
+    background-color: #3b82f6;
+}
+
+#Freeze-command-button:hover {
+    background-color: #2563eb;
+}
+
+#Unfreeze-command-button {
+    background-color: #10b981;
+}
+
+#Unfreeze-command-button:hover {
+    background-color: #059669;
+}
+
+/* Styles pour les dialogues personnalisés */
+.custom-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-message {
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #1e293b;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.dialog-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.dialog-button-confirm {
+    background-color: #4a6cf7;
+    color: white;
+}
+
+.dialog-button-cancel {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+/* Styles pour la section d'historique des commandes */
+.history-area {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 10px;
+    box-shadow: 0 4px 6px rgba(139, 169, 204, 0.1);
+}
+
+.history-area h3 {
+    margin-bottom: 15px;
+    color: #4a5568;
+}
+
+.history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.history-filter-btn {
+    background-color: #f0f5ff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.history-filter-btn:hover {
+    background-color: #e6eeff;
+}
+
+.history-filter-btn.active {
+    background-color: #4a6cf7;
+    color: white;
+}
+
+.history-table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eaedf2;
+    border-radius: 8px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th, 
+.history-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eaedf2;
+}
+
+.history-table th {
+    background-color: #f8faff;
+    font-weight: 600;
+    color: #4a5568;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.history-table tbody tr:hover {
+    background-color: #f0f5ff;
+}
+
+.history-table .status-success {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.history-table .status-error {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.history-table .status-pending {
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+.history-table .button-type {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.history-table .button-PowerOff {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.history-table .button-CancelShutdown {
+    background-color: rgba(249, 115, 22, 0.1);
+    color: #f97316;
+}
+
+.history-table .button-Freeze {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.history-table .button-Unfreeze {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.history-table .button-Manual {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
 }
