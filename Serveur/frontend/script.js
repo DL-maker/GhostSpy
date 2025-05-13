@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let logsPollingInterval;
     let scanResultsPollingInterval;
     let lastProcessedLogTime = null;
+    let lastCommandIdSent = null;
     
 
     function fetchClients() {
@@ -65,7 +66,46 @@ document.addEventListener('DOMContentLoaded', function() {
         startLogsPolling(clientId);
         fetchScanResults(clientId);  // Fetch scan results
         startScanResultsPolling(clientId); // Start polling for scan results
+        loadCommandHistory(clientId); // Charger l'historique des commandes
         lastProcessedLogTime = null;
+        
+        // Stockage de l'ID client dans le localStorage pour persistance
+        localStorage.setItem('currentClientId', clientId);
+        localStorage.setItem('currentClientName', clientName);
+        
+        // Activer les boutons de commande
+        enableCommandButtons();
+    }
+
+    // Fonction pour activer/désactiver les boutons de commande en fonction de la sélection d'appareil
+    function enableCommandButtons() {
+        const commandButtons = document.querySelectorAll('.command-buttons button');
+        const executeCommandButton = document.getElementById('execute-command-button');
+        
+        if (currentClientId) {
+            commandButtons.forEach(button => {
+                button.disabled = false;
+            });
+            executeCommandButton.disabled = false;
+        } else {
+            commandButtons.forEach(button => {
+                button.disabled = true;
+            });
+            executeCommandButton.disabled = true;
+        }
+    }
+    
+    // Vérifier s'il y a un client précédemment sélectionné à restaurer
+    if (localStorage.getItem('currentClientId')) {
+        const storedClientId = localStorage.getItem('currentClientId');
+        const storedClientName = localStorage.getItem('currentClientName');
+        
+        // Attendre un peu pour s'assurer que la liste des clients est chargée
+        setTimeout(() => {
+            if (storedClientId && storedClientName) {
+                window.showDevicePage(storedClientId, storedClientName);
+            }
+        }, 1000);
     }
 
     window.disconnectClient = function(clientId) {
@@ -103,77 +143,333 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(screenshotPollingInterval);
     }
 
+    function generateCommandId() {
+        return Date.now().toString() + Math.floor(Math.random() * 10000).toString();
+    }
+
+    // Fonction pour envoyer une commande en identifiant le bouton utilisé
+    function sendCommandWithButton(clientId, command, buttonType) {
+        if (!clientId) {
+            return false;
+        }
+        
+        const commandOutput = document.getElementById('command-output');
+        commandOutput.style.display = 'block';
+        const commandId = generateCommandId();
+        lastCommandIdSent = commandId;
+        
+        commandOutput.innerHTML = `
+            <div class="command-header"><div class="command-spinner"></div><span>Exécution de la commande: <span style="color: #38bdf8; margin-left: 5px;">${command}</span></span></div>
+            <p>Veuillez patienter...</p>
+        `;
+
+        fetch(`/client/${clientId}/command`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                command: command, 
+                command_id: commandId,
+                button_type: buttonType 
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erreur réseau: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            setTimeout(() => {
+                checkCommandResult(clientId);
+            }, 2000);
+        })
+        .catch(error => {
+            console.error("Erreur lors de l'envoi de la commande:", error);
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">Erreur lors de l'envoi de la commande</div>
+                <p>${error.message || 'Une erreur est survenue'}</p>
+            `;
+        });
+        
+        return true;
+    }
+
+    // Fonction pour récupérer l'historique des commandes
+    function fetchCommandHistory(clientId, buttonType = null) {
+        if (!clientId) {
+            return;
+        }
+        
+        let url = `/client/${clientId}/command_history`;
+        if (buttonType) {
+            url += `?button_type=${buttonType}`;
+        }
+        
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur réseau: ${response.status}`);
+                }
+                return response.json();
+            });
+    }
+
+    // Modifions les listeners des boutons pour utiliser la nouvelle fonction
     executeCommandButton.addEventListener('click', function() {
         const command = commandInput.value;
-        if (command && currentClientId) {
+        if (!command) {
+            return; // Ne rien faire si aucune commande n'est entrée
+        }
+        
+        if (!currentClientId) {
+            // Au lieu d'afficher une alerte, mettre à jour directement le résultat pour indiquer qu'il faut sélectionner un appareil
+            const commandOutput = document.getElementById('command-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">Action impossible</div>
+                <p>Sélectionnez un appareil dans la liste.</p>
+            `;
+            return;
+        }
+        
+        sendCommandWithButton(currentClientId, command, 'Manual');
+        commandInput.value = '';
+    });
+
+    // Fonction pour créer un dialogue personnalisé (remplace alert et confirm)
+    function showCustomDialog(message, onConfirm = null, onCancel = null, isConfirm = false) {
+        // Créer l'élément de dialogue
+        const dialogEl = document.createElement('div');
+        dialogEl.className = 'custom-dialog';
+        
+        // Contenu du dialogue
+        let dialogContent = `
+            <div class="dialog-content">
+                <div class="dialog-message">${message}</div>
+                <div class="dialog-buttons">
+        `;
+        
+        // Ajouter les boutons selon le type (confirm ou alert)
+        if (isConfirm) {
+            dialogContent += `
+                    <button class="dialog-button dialog-button-confirm" id="dialog-confirm-btn">Confirmer</button>
+                    <button class="dialog-button dialog-button-cancel" id="dialog-cancel-btn">Annuler</button>
+            `;
+        } else {
+            dialogContent += `
+                    <button class="dialog-button dialog-button-confirm" id="dialog-ok-btn">OK</button>
+            `;
+        }
+        
+        dialogContent += `
+                </div>
+            </div>
+        `;
+        
+        dialogEl.innerHTML = dialogContent;
+        document.body.appendChild(dialogEl);
+        
+        // Ajouter les gestionnaires d'événements
+        if (isConfirm) {
+            const confirmBtn = document.getElementById('dialog-confirm-btn');
+            const cancelBtn = document.getElementById('dialog-cancel-btn');
+            
+            confirmBtn.addEventListener('click', function() {
+                if (onConfirm) onConfirm();
+                document.body.removeChild(dialogEl);
+            });
+            
+            cancelBtn.addEventListener('click', function() {
+                if (onCancel) onCancel();
+                document.body.removeChild(dialogEl);
+            });
+        } else {
+            const okBtn = document.getElementById('dialog-ok-btn');
+            
+            okBtn.addEventListener('click', function() {
+                if (onConfirm) onConfirm();
+                document.body.removeChild(dialogEl);
+            });
+        }
+    }
+    
+    // Power Off button functionality
+    PowerOffCommandButton.addEventListener('click', function() {
+        if (!currentClientId) {
+            return; // Ne rien faire si aucun client n'est sélectionné
+        }
+        
+        showCustomDialog("Voulez-vous vraiment éteindre cet appareil?", function() {
+            // Code à exécuter si l'utilisateur confirme
             const commandOutput = document.getElementById('command-output');
             commandOutput.style.display = 'block';
             commandOutput.innerHTML = `
                 <div class="command-header">
                     <div class="command-spinner"></div>
-                    Exécution de la commande: <span style="color: #38bdf8">${command}</span>
+                    Extinction de l'appareil...
                 </div>
                 <p>Veuillez patienter...</p>
             `;
-
-            fetch(`/client/${currentClientId}/command`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ command: command })
-            })
-            .then(response => response.json())
-            .then(data => {
-                setTimeout(() => {
-                    checkCommandResult(currentClientId);
-                }, 2000);
-                commandInput.value = '';
-            })
-            .catch(error => {
-                commandOutput.innerHTML = `
-                    <div class="command-header" style="color: #fb7185">
-                        Erreur lors de l'envoi de la commande
-                    </div>
-                    <p>${error.message || 'Une erreur est survenue'}</p>
-                `;
-            });
-        } else {
+            
+            // Get OS type from the server
+            fetch(`/client/${currentClientId}`)
+                .then(response => response.json())
+                .then(clientData => {
+                    const osType = clientData.os_type;
+                    
+                    let powerOffCommand;
+                    switch (osType) {
+                        case "Windows":
+                            powerOffCommand = "shutdown /s /t 30 /c \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler avec 'shutdown /a'\"";
+                            break;
+                        case "Linux":
+                            powerOffCommand = "sudo shutdown -h +0.5 \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler\"";
+                            break;
+                        case "Darwin": // macOS
+                            powerOffCommand = "sudo shutdown -h +0.5";
+                            break;
+                        default:
+                            powerOffCommand = "shutdown /s /t 30";
+                    }
+                    
+                    sendCommandWithButton(currentClientId, powerOffCommand, "PowerOff");
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des données client:", error);
+                    commandOutput.innerHTML = `
+                        <div class="command-header" style="color: #fb7185">
+                            Erreur lors de la récupération des données client
+                        </div>
+                        <p>${error.message || 'Une erreur est survenue'}</p>
+                    `;
+                });
+        }, null, true);
+    });
+    
+    // Cancel Shutdown button
+    const cancelShutdownButton = document.getElementById('Cancel-Shutdown-button');
+    if (cancelShutdownButton) {
+        cancelShutdownButton.addEventListener('click', function() {
+            if (!currentClientId) {
+                return; // Ne rien faire si aucun client n'est sélectionné
+            }
+            
             const commandOutput = document.getElementById('command-output');
             commandOutput.style.display = 'block';
             commandOutput.innerHTML = `
-                <div class="command-header" style="color: #fb7185">
-                    L'appareil ne réponds plus.
+                <div class="command-header">
+                    <div class="command-spinner"></div>
+                    Annulation de l'extinction...
                 </div>
-                <p>Veuillez entrer une commande et sélectionner un appareil.</p>
+                <p>Veuillez patienter...</p>
             `;
-        }
-    });
+            
+            // Get OS type from the server
+            fetch(`/client/${currentClientId}`)
+                .then(response => response.json())
+                .then(clientData => {
+                    const osType = clientData.os_type;
+                    let cancelCommand;
+                    
+                    switch (osType) {
+                        case "Windows":
+                            cancelCommand = "shutdown /a";
+                            break;
+                        case "Linux":
+                            cancelCommand = "sudo shutdown -c \"Arrêt système annulé\"";
+                            break;
+                        case "Darwin": // macOS
+                            cancelCommand = "sudo killall shutdown";
+                            break;
+                        default:
+                            cancelCommand = "shutdown /a";
+                    }
+                    
+                    sendCommandWithButton(currentClientId, cancelCommand, "CancelShutdown");
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des données client:", error);
+                    commandOutput.innerHTML = `
+                        <div class="command-header" style="color: #fb7185">
+                            Erreur lors de la récupération des données client
+                        </div>
+                        <p>${error.message || 'Une erreur est survenue'}</p>
+                    `;
+                });
+        });
+    }
 
-    executeCommandButton.addEventListener('click', function() {
-            const command = commandInput.value;
-            let PowerOff = "shutdown /s /t 0";
-            let os_computer;
-            switch (os_computer) {
-                case "Windows":
-                    PowerOff = "shutdown /s /t 0";
-                    break;
-                case "Linux":
-                    PowerOff = "sudo shutdown 0";
-                    break;
-                case "Darwin":
-                    PowerOff = "sudo shutdown -h now";
-                    break;
+    // Add event listener for Freeze button
+    const freezeButton = document.getElementById('Freeze-command-button');
+    if (freezeButton) {
+        freezeButton.addEventListener('click', function() {
+            if (!currentClientId) {
+                return; // Ne rien faire si aucun client n'est sélectionné
             }
             
-            fetch(`/client/${currentClientId}/command`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            body: JSON.stringify({ command: PowerOff })
+            sendCommandWithButton(currentClientId, "freeze", "Freeze");
+        });
+    }
+
+    // Add event listener for Unfreeze button
+    const unfreezeButton = document.getElementById('Unfreeze-command-button');
+    if (unfreezeButton) {
+        unfreezeButton.addEventListener('click', function() {
+            if (!currentClientId) {
+                return; // Ne rien faire si aucun client n'est sélectionné
+            }
+            
+            sendCommandWithButton(currentClientId, "unfreeze", "Unfreeze");
+        });
+    }
+
+    executeAPIbutton.addEventListener('click', function() {
+        const token = apiInput.value;
+        if (!token) {
+            return; // Ne rien faire si aucun token n'est entré
+        }
+        
+        if (!currentClientId) {
+            // Au lieu d'afficher une alerte, mettre à jour directement le résultat pour indiquer qu'il faut sélectionner un appareil
+            const commandOutput = document.getElementById('api-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">
+                    Action impossible
+                </div>
+                <p>Sélectionnez un appareil dans la liste.</p>
+            `;
+            return;
+        }
+        
+        const commandOutput = document.getElementById('api-output');
+        commandOutput.style.display = 'block';
+        commandOutput.innerHTML = `
+            <div class="command-header">
+                <div class="command-spinner"></div>
+                Exécution de la commande: <span style="color: #38bdf8">${token}</span>
+            </div>
+            <p>Veuillez patienter...</p>
+        `;
+        
+        fetch(`/client/${currentClientId}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: token })
         })
-        .catch(error => {
+        .then(response => response.json())
+        .then(data => {
+            console.log("OK")
+            setTimeout(() => {
+                commandOutput.innerHTML ='<p>Api mis a jour</p>'
+            }, 2000);
+            commandInput.value = '';
+        })
+        .catch(error =>{ console.log("Error")
             commandOutput.innerHTML = `
                 <div class="command-header" style="color: #fb7185">
                     Erreur lors de l'envoi de la commande
@@ -183,85 +479,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    executeAPIbutton.addEventListener('click', function() {
-        const token = apiInput.value;
-        if (token && currentClientId) {
-            const commandOutput = document.getElementById('api-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header">
-                    <div class="command-spinner"></div>
-                    Exécution de la commande: <span style="color: #38bdf8">${token}</span>
-                </div>
-                <p>Veuillez patienter...</p>
-            `;
-            console.log(123)
-            fetch(`/client/${currentClientId}/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ token: token })
-            })
-            .then(response => response.json())
-           
-            .then(data => {
-                console.log("OK")
-                setTimeout(() => {
-                    commandOutput.innerHTML ='<p>Api mis a jour</p>'
-                }, 2000);
-                commandInput.value = '';
-            })
-
-            .catch(error =>{ console.log("Error")
-                commandOutput.innerHTML = `
-                    <div class="command-header" style="color: #fb7185">
-                        Erreur lors de l'envoi de la commande
-                    </div>
-                    <p>${error.message || 'Une erreur est survenue'}</p>
-                `;
-            });
-        } else {
-            const commandOutput = document.getElementById('api-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header" style="color: #fb7185">
-                    Erreur
-                </div>
-                <p>Veuillez entrer une commande et sélectionner un appareil.</p>
-            `;
-        }
-    });
-
-
-
     function checkCommandResult(clientId) {
         fetch(`/client/${clientId}/commandresult`)
         .then(response => response.json())
         .then(data => {
             const commandOutput = document.getElementById('command-output');
-            if (data.output) {
+            if (data.output && data.output.command_id === lastCommandIdSent) {
                 let resultHtml = `
-                    <div class="command-header">
-                        Commande : <span style="color: #38bdf8">${data.output.command}</span>
-                    </div>`;
+                    <div class="command-header">Commande : <span style="color: #38bdf8; margin-left: 5px;">${data.output.command}</span></div>`;
 
                 if (data.output.stdout && data.output.stdout.trim() !== '') {
                     resultHtml += `
-                        <div>
-                            <div style="color: #94a3b8; margin-top: 10px;">STDOUT :</div>
-                            <pre class="command-stdout">${escapeHtml(data.output.stdout)}</pre>
-                        </div>`;
+                        <div><div style="color: #94a3b8; margin-top: 10px; font-weight: bold;">STDOUT :</div><pre class="command-stdout">${escapeHtml(data.output.stdout)}</pre></div>`;
                 } else {
-                    resultHtml += `<div style="color: #94a3b8; margin-top: 10px;">STDOUT : (Pas de sortie)</div>`;
+                    resultHtml += `<div style="color: #94a3b8; margin-top: 10px; font-weight: bold;">STDOUT : (Pas de sortie)</div>`;
                 }
 
                 if (data.output.stderr && data.output.stderr.trim() !== '') {
                     resultHtml += `
-                        <div>
-                            <div style="color: #94a3b8; margin-top: 10px;">STDERR :</div>
-                            <pre class="command-stderr">${escapeHtml(data.output.stderr)}</pre>
-                        </div>`;
+                        <div><div style="color: #94a3b8; margin-top: 10px; font-weight: bold;">STDERR :</div><pre class="command-stderr">${escapeHtml(data.output.stderr)}</pre></div>`;
                 }
 
                 commandOutput.innerHTML = resultHtml;
@@ -273,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <p>L'exécution de la commande est en cours, veuillez patienter.</p>
                 `;
-                setTimeout(() => checkCommandResult(clientId), 2000);
+                setTimeout(() => checkCommandResult(clientId), 1500);
             }
         })
         .catch(error => {
@@ -288,12 +524,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        
+        // Préserver les sauts de ligne tout en échappant les caractères spéciaux
         return unsafe
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
+            .replace(/\n/g, "<br>")   // Convertir les sauts de ligne en <br>
+            .replace(/\s\s/g, "&nbsp;&nbsp;"); // Préserver les espaces multiples
     }
 
     setInterval(fetchClients, 5000);
@@ -655,5 +896,131 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(window.scanResultsInterval);
             window.scanResultsInterval = null;
         }
+    });
+
+    // Initialiser les boutons désactivés au démarrage
+    window.addEventListener('DOMContentLoaded', function() {
+        const commandButtons = document.querySelectorAll('.command-buttons button');
+        const executeCommandButton = document.getElementById('execute-command-button');
+        
+        // Désactiver les boutons au démarrage jusqu'à ce qu'un client soit sélectionné
+        commandButtons.forEach(button => {
+            button.disabled = true;
+        });
+        executeCommandButton.disabled = true;
+    });
+
+    // Fonction pour charger et afficher l'historique des commandes
+    function loadCommandHistory(clientId, buttonType = null) {
+        if (!clientId) {
+            return;
+        }
+        
+        fetchCommandHistory(clientId, buttonType)
+            .then(history => {
+                const tbody = document.getElementById('command-history-tbody');
+                tbody.innerHTML = '';
+                
+                if (history.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td colspan="4" style="text-align: center;">Aucune commande dans l\'historique</td>';
+                    tbody.appendChild(tr);
+                    return;
+                }
+                
+                history.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    // Date et heure formatées
+                    const date = new Date(item.timestamp);
+                    const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                    
+                    // Statut avec classe CSS
+                    const statusClass = `status-${item.status || 'pending'}`;
+                    const statusText = item.status === 'success' ? 'Succès' : 
+                                      item.status === 'error' ? 'Erreur' : 
+                                      'En attente';
+                    
+                    // Type de bouton avec classe CSS
+                    const buttonClass = `button-${item.button_type || 'Manual'}`;
+                    const buttonText = item.button_type || 'Manuel';
+                    
+                    tr.innerHTML = `
+                        <td>${formattedDate}</td>
+                        <td>${item.command}</td>
+                        <td><span class="button-type ${buttonClass}">${buttonText}</span></td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                    `;
+                    
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement de l\'historique :', error);
+                const tbody = document.getElementById('command-history-tbody');
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ef4444;">Erreur lors du chargement de l\'historique</td></tr>';
+            });
+    }
+
+    // Ajouter un événement pour mettre à jour l'historique quand on sélectionne un appareil
+    window.showDevicePage = function(clientId, clientName) {
+        currentClientId = clientId;
+        deviceNameHeader.textContent = clientName;
+        devicePageDiv.style.display = 'block';
+        clientListDiv.style.display = 'none';
+        fetchScreenshot(clientId);
+        startScreenshotPolling(clientId);
+        fetchResourceInfo(clientId);
+        startResourcePolling(clientId);
+        startLogsPolling(clientId);
+        fetchScanResults(clientId);  // Fetch scan results
+        startScanResultsPolling(clientId); // Start polling for scan results
+        loadCommandHistory(clientId); // Charger l'historique des commandes
+        lastProcessedLogTime = null;
+        
+        // Stockage de l'ID client dans le localStorage pour persistance
+        localStorage.setItem('currentClientId', clientId);
+        localStorage.setItem('currentClientName', clientName);
+        
+        // Activer les boutons de commande
+        enableCommandButtons();
+    }
+
+    // Ajouter les événements pour les filtres d'historique
+    document.addEventListener('DOMContentLoaded', function() {
+        const historyFilterButtons = document.querySelectorAll('.history-filter-btn');
+        historyFilterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Mettre à jour la classe active
+                historyFilterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Récupérer le filtre sélectionné
+                const filter = this.getAttribute('data-filter');
+                
+                // Charger l'historique filtré
+                if (currentClientId) {
+                    if (filter === 'all') {
+                        loadCommandHistory(currentClientId);
+                    } else {
+                        loadCommandHistory(currentClientId, filter);
+                    }
+                }
+            });
+        });
+        
+        // Recharger l'historique périodiquement
+        setInterval(() => {
+            if (currentClientId && devicePageDiv.style.display !== 'none') {
+                const activeFilterBtn = document.querySelector('.history-filter-btn.active');
+                const filter = activeFilterBtn ? activeFilterBtn.getAttribute('data-filter') : 'all';
+                
+                if (filter === 'all') {
+                    loadCommandHistory(currentClientId);
+                } else {
+                    loadCommandHistory(currentClientId, filter);
+                }
+            }
+        }, 10000); // Mise à jour toutes les 10 secondes
     });
 });

