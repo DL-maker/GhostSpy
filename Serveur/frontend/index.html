@@ -59,9 +59,42 @@
             <input type="text" id="command-input" placeholder="Commande à exécuter">
             <button id="execute-command-button">Exécuter</button>
             <div id="command-output" class="command-output"></div>
-            <button id="PowerOff-command-button">Power Off</button>
-            <button id="Freeze-command-button">Freeze</button>
+            <div class="command-buttons">
+                <button id="PowerOff-command-button">Power Off</button>
+                <button id="Cancel-Shutdown-button">Cancel Shutdown</button>
+                <button id="Freeze-command-button">Freeze</button>
+                <button id="Unfreeze-command-button">Unfreeze</button>
+            </div>
         </div>
+        
+        <!-- Nouvelle section pour l'historique des commandes -->
+        <div class="history-area">
+            <h3>Historique des commandes</h3>
+            <div class="history-filters">
+                <button class="history-filter-btn active" data-filter="all">Toutes</button>
+                <button class="history-filter-btn" data-filter="PowerOff">Power Off</button>
+                <button class="history-filter-btn" data-filter="CancelShutdown">Cancel Shutdown</button>
+                <button class="history-filter-btn" data-filter="Freeze">Freeze</button>
+                <button class="history-filter-btn" data-filter="Unfreeze">Unfreeze</button>
+                <button class="history-filter-btn" data-filter="Manual">Manuelles</button>
+            </div>
+            <div class="history-table-container">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Date/Heure</th>
+                            <th>Commande</th>
+                            <th>Type</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="command-history-tbody">
+                        <!-- L'historique sera chargé ici -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
         <div class="logs-area">
             <h3>Journaux d'activité</h3>
             <div class="logs-filter">
