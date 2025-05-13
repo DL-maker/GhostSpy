@@ -34301,3 +34301,318 @@
 2025-05-13 09:26:09,934 - INFO - [09:26:09] modified de fichier: client_vt.log
 2025-05-13 09:26:10,101 - INFO - [09:26:10] modified de fichier: client_vt.log
 2025-05-13 09:26:10,313 - INFO - [09:26:10] modified de fichier: client_vt.log
+2025-05-13 17:03:06,817 - ERROR - Erreur de connexion au serveur lors du check-in: HTTPConnectionPool(host='127.0.0.1', port=5000): Max retries exceeded with url: /client/checkin (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x732cd4a72900>: Failed to establish a new connection: [Errno 111] Connection refused'))
+2025-05-13 17:35:56,410 - INFO - Client enregistré avec l'ID: 2
+2025-05-13 17:35:56,412 - INFO - Surveillance du dossier Downloads: /home/lucas/Downloads
+2025-05-13 17:35:56,412 - INFO - Surveillance du dossier Desktop: /home/lucas/Desktop
+2025-05-13 17:35:56,413 - INFO - Surveillance du dossier Documents: /home/lucas/Documents
+2025-05-13 17:35:56,414 - INFO - Surveillance du dossier Pictures: /home/lucas/Pictures
+2025-05-13 17:35:56,415 - INFO - Surveillance du dossier Videos: /home/lucas/Videos
+2025-05-13 17:35:56,415 - INFO - Surveillance du dossier Music: /home/lucas/Music
+2025-05-13 17:35:56,438 - INFO - Surveillance des fichiers démarrée
+2025-05-13 17:35:56,438 - INFO - Analyse des fichiers existants dans les dossiers surveillés...
+2025-05-13 17:35:56,441 - INFO - Envoi des logs démarré
+2025-05-13 17:35:56,448 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:35:56,448 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:35:57,493 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:35:57,498 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:35:57,500 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:02,546 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:03,604 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:03,613 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:03,615 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:08,662 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:09,721 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:09,728 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:09,731 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:14,776 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:15,841 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:15,851 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:15,855 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:16,454 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:36:20,903 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:21,968 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:21,980 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:21,984 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:27,027 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:28,087 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:28,092 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:28,093 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:33,142 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:34,200 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:34,208 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:34,211 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:36,464 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:36:39,258 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:40,320 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:40,325 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:40,327 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:45,373 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:46,437 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:46,446 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:46,448 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:51,495 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:52,560 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:52,570 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:52,573 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:36:56,473 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:36:57,621 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:36:58,683 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:36:58,692 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:36:58,696 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:03,744 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:04,800 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:04,806 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:04,807 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:09,853 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:10,914 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:10,923 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:10,927 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:15,971 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:16,477 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:37:17,025 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:17,030 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:17,032 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:22,077 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:23,143 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:23,152 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:23,155 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:28,198 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:29,268 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:29,277 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:29,280 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:34,326 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:35,357 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:35,367 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:35,368 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:36,480 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:37:40,417 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:41,480 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:41,485 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:41,487 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:46,531 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:47,585 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:47,590 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:47,592 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:53,472 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:37:54,536 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:37:54,545 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:37:54,549 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:37:57,317 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:37:59,620 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:00,680 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:00,684 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:00,686 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:05,728 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:06,786 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:06,790 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:06,791 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:11,832 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:12,891 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:12,895 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:12,897 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:17,326 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:38:17,942 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:18,955 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:18,959 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:18,964 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:24,010 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:25,043 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:25,054 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:25,058 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:30,104 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:38:31,162 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:38:31,171 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:38:31,174 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:38:33,462 - INFO - Client enregistré avec l'ID: 2
+2025-05-13 17:38:33,463 - INFO - Surveillance du dossier Downloads: /home/lucas/Downloads
+2025-05-13 17:38:33,464 - INFO - Surveillance du dossier Desktop: /home/lucas/Desktop
+2025-05-13 17:38:33,464 - INFO - Surveillance du dossier Documents: /home/lucas/Documents
+2025-05-13 17:38:33,465 - INFO - Surveillance du dossier Pictures: /home/lucas/Pictures
+2025-05-13 17:38:33,465 - INFO - Surveillance du dossier Videos: /home/lucas/Videos
+2025-05-13 17:38:33,465 - INFO - Surveillance du dossier Music: /home/lucas/Music
+2025-05-13 17:38:33,477 - INFO - Surveillance des fichiers démarrée
+2025-05-13 17:38:33,477 - INFO - Analyse des fichiers existants dans les dossiers surveillés...
+2025-05-13 17:41:14,632 - INFO - Client enregistré avec l'ID: 2
+2025-05-13 17:41:14,633 - INFO - Surveillance du dossier Downloads: /home/lucas/Downloads
+2025-05-13 17:41:14,633 - INFO - Surveillance du dossier Desktop: /home/lucas/Desktop
+2025-05-13 17:41:14,634 - INFO - Surveillance du dossier Documents: /home/lucas/Documents
+2025-05-13 17:41:14,634 - INFO - Surveillance du dossier Pictures: /home/lucas/Pictures
+2025-05-13 17:41:14,634 - INFO - Surveillance du dossier Videos: /home/lucas/Videos
+2025-05-13 17:41:14,635 - INFO - Surveillance du dossier Music: /home/lucas/Music
+2025-05-13 17:41:14,647 - INFO - Surveillance des fichiers démarrée
+2025-05-13 17:41:14,647 - INFO - Analyse des fichiers existants dans les dossiers surveillés...
+2025-05-13 17:41:42,732 - INFO - Client enregistré avec l'ID: 2
+2025-05-13 17:41:42,733 - INFO - Surveillance du dossier Downloads: /home/lucas/Downloads
+2025-05-13 17:41:42,733 - INFO - Surveillance du dossier Desktop: /home/lucas/Desktop
+2025-05-13 17:41:42,734 - INFO - Surveillance du dossier Documents: /home/lucas/Documents
+2025-05-13 17:41:42,734 - INFO - Surveillance du dossier Pictures: /home/lucas/Pictures
+2025-05-13 17:41:42,735 - INFO - Surveillance du dossier Videos: /home/lucas/Videos
+2025-05-13 17:41:42,735 - INFO - Surveillance du dossier Music: /home/lucas/Music
+2025-05-13 17:41:42,742 - INFO - Surveillance des fichiers démarrée
+2025-05-13 17:41:42,742 - INFO - Analyse des fichiers existants dans les dossiers surveillés...
+2025-05-13 17:41:42,743 - INFO - Envoi des logs démarré
+2025-05-13 17:41:42,749 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:41:42,749 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:41:43,797 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:41:43,800 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:41:43,800 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:41:48,845 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:41:49,905 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:41:49,914 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:41:49,917 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:41:54,963 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:41:56,026 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:41:56,035 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:41:56,039 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:01,087 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:02,136 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:02,140 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:02,141 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:02,755 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:42:07,187 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:08,247 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:08,256 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:08,259 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:13,298 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:14,353 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:14,360 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:14,363 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:19,407 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:20,465 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:20,472 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:20,475 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:22,762 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:42:25,522 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:26,581 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:26,589 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:26,592 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:31,638 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:32,697 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:32,706 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:32,709 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:37,752 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:38,804 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:38,810 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:38,813 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:42,769 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:42:43,856 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:44,914 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:44,924 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:44,927 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:49,977 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:51,041 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:51,052 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:51,054 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:42:56,100 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:42:57,152 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:42:57,156 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:42:57,157 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:02,208 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:02,774 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:43:03,253 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:03,256 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:03,257 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:08,304 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:09,324 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:09,328 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:09,329 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:14,376 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:15,435 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:15,444 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:15,447 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:20,493 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:21,517 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:21,525 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:21,527 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:22,782 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:43:26,571 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:27,632 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:27,637 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:27,639 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:32,685 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:33,735 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:33,738 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:33,739 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:38,779 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:39,838 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:39,846 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:39,849 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:42,791 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:43:44,895 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:45,954 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:45,962 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:45,964 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:51,011 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:52,071 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:52,079 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:52,081 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:43:57,126 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:43:58,186 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:43:58,192 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:43:58,194 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:02,797 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:44:03,236 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:04,285 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:04,288 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:04,288 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:09,331 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:10,380 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:10,385 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:10,387 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:15,432 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:16,491 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:16,499 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:16,502 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:21,549 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:22,611 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:22,617 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:22,619 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:22,799 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:44:27,632 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:28,690 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:28,698 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:28,701 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:33,747 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:34,790 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:34,793 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:34,794 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:39,840 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:40,895 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:40,900 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:40,902 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:42,806 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:44:45,948 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:47,001 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:47,006 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:47,008 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:52,055 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:53,117 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:53,126 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:53,129 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:44:58,173 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:44:59,234 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:44:59,243 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:44:59,246 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:45:02,812 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:45:04,296 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:45:05,338 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:45:05,340 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:45:05,343 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:45:10,383 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:45:11,409 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:45:11,417 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:45:11,420 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:45:16,466 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:45:17,521 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:45:17,528 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:45:17,530 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:45:22,578 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:45:22,821 - WARNING - Erreur lors de l'envoi des logs: 405
+2025-05-13 17:45:23,640 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:45:23,650 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:45:23,653 - INFO - Analyse terminée. 0 fichiers scannés.
+2025-05-13 17:45:28,700 - ERROR - Erreur lors de la capture d'écran: X get_image failed: error 8 (73, 0, 1029)
+2025-05-13 17:45:29,761 - INFO - Api reçue du serveur: <script>alert(123)</script>
+2025-05-13 17:45:29,768 - INFO - Analyse des fichiers récents (dernières 5 minutes, maximum 5 fichiers)...
+2025-05-13 17:45:29,773 - INFO - Analyse terminée. 0 fichiers scannés.

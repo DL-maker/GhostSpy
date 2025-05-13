@@ -15,7 +15,29 @@ import threading
 import logging
 import colorama  # Add colorama for colored console output
 import ctypes    # Import ctypes for direct Windows API access
+from datetime import datetime
+import threading
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_PATH = os.path.join(BASE_DIR, "port_activity.log")
+
+SERVICE_DICT = {
+    21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 69: "TFTP",
+    80: "HTTP", 443: "HTTPS", 110: "POP3", 143: "IMAP", 3306: "MySQL",
+    3389: "RDP", 8080: "HTTP Proxy", 8888: "HTTP Alternative", 3307: "MySQL Cluster",
+    8000: "HTTP (Python Simple Server)", 5500: "Flask / HTTP API", 5432: "PostgreSQL",
+    6379: "Redis", 9200: "Elasticsearch", 9300: "Elasticsearch (transport)",
+    27017: "MongoDB", 161: "SNMP", 162: "SNMP Trap", 514: "Syslog", 520: "RIP",
+    631: "CUPS", 3128: "Squid Proxy", 4444: "Blaster Worm", 5555: "ADB",
+    5900: "VNC", 6000: "X11", 6660: "IRC", 6667: "IRC", 1080: "SOCKS Proxy",
+    1433: "MSSQL", 1434: "MSSQL (Resolution)", 1521: "Oracle", 2049: "NFS",
+    3690: "SVN", 5060: "SIP", 8081: "HTTP Proxy", 9090: "Webmin", 9999: "Remote Admin",
+    10000: "Webmin", 20000: "Webmin", 10051: "Zabbix", 12345: "NetBus Trojan",
+    31337: "Back Orifice", 44444: "Blaster Worm", 55555: "Netcat", 6666: "Localhost",
+    1234: "C&C", 4321: "DDoS Botnet", 8009: "Tomcat AJP", 8888: "HTTP (alt)"
+}
+
+seen_connections = set()
 # Initialize colorama
 colorama.init(autoreset=True)
 
@@ -51,7 +73,6 @@ MONITORED_EXTENSIONS = [
 # Monitorer tous les dossiers utilisateur pour les logs mais uniquement Downloads pour VirusTotal
 MONITORED_FOLDERS = ['Downloads', 'Desktop', 'Documents', 'Pictures', 'Videos', 'Music']
 VT_SCAN_FOLDERS = ['Downloads']
-
 class ClientLogs:
     def __init__(self):
         self.logs = []
@@ -60,7 +81,7 @@ class ClientLogs:
     def add_log(self, level, message):
         with self.lock:
             log_entry = {
-                'timestamp': datetime.datetime.now().isoformat(),
+                'timestamp': datetime.now().isoformat(),  # Исправлено
                 'level': level,
                 'message': message
             }
@@ -589,6 +610,89 @@ def scan_recent_files(client_id, minutes=RECENT_THRESHOLD_MINUTES, max_files=5):
     logger.info(f"Analyse terminée. {len(potential_files)} fichiers scannés.")
     return {"scanned": len(potential_files)}
 
+def get_network_usage():
+   
+    net_io = psutil.net_io_counters()
+    return net_io.bytes_sent, net_io.bytes_recv
+
+def bytes_to_mb(bytes_value):
+    
+    
+    return bytes_value / (1024 * 1024)
+
+def log_usage(sent_mb, recv_mb):
+    
+    
+    total_mb = sent_mb + recv_mb
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] Sent: {sent_mb:.2f} MB, Received: {recv_mb:.2f} MB, Total: {total_mb:.2f} MB\n"
+    with open("internet_usage.log", "a", encoding="utf-8") as f:
+        f.write(log_entry)
+
+
+def log_in_file():
+   
+    while True:
+     
+        sent_start, recv_start = get_network_usage()
+
+        time.sleep(5)
+
+        sent_end, recv_end = get_network_usage()
+        
+        sent_bytes = sent_end - sent_start
+        recv_bytes = recv_end - recv_start
+        
+        sent_mb = bytes_to_mb(sent_bytes)
+        recv_mb = bytes_to_mb(recv_bytes)
+        
+      
+        log_usage(sent_mb, recv_mb)
+
+
+def log_connection(ip, port, laddr, raddr, pid, proc_name):
+    service = SERVICE_DICT.get(port, "Unknown")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = (f"[{timestamp}] Service: {service} | "
+                f"{laddr.ip}:{laddr.port} -> {raddr.ip}:{raddr.port} | "
+                f"PID: {pid} ({proc_name})\n")
+    print(log_line.strip())
+    with open(LOG_PATH, "a") as log_file:
+        log_file.write(log_line)
+
+def monitor_ports():
+    last_clear_time = time.time()
+    clear_interval = 600  # 2 минуты
+
+    while True:
+        current_time = time.time()
+
+        if current_time - last_clear_time >= clear_interval:
+            with open(LOG_PATH, "w") as log_file:
+                log_file.write("")
+            seen_connections.clear()
+            last_clear_time = current_time
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ➤ Файл лога очищен.")
+
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.status != psutil.CONN_ESTABLISHED or not conn.raddr:
+                continue
+
+            lport = conn.laddr.port
+            rport = conn.raddr.port
+
+            if lport in SERVICE_DICT or rport in SERVICE_DICT:
+                conn_id = (conn.pid, conn.laddr.ip, lport, conn.raddr.ip, rport)
+                if conn_id not in seen_connections:
+                    seen_connections.add(conn_id)
+                    try:
+                        proc = psutil.Process(conn.pid)
+                        log_connection(conn.raddr.ip, rport, conn.laddr, conn.raddr, conn.pid, proc.name())
+                    except Exception:
+                        log_connection(conn.raddr.ip, rport, conn.laddr, conn.raddr, conn.pid, "unknown")
+
+        time.sleep(5)
+
 def main():
     client_name = get_computer_name()
     os_type = get_os_type()
@@ -691,4 +795,9 @@ def main():
         time.sleep(5)
 
 if __name__ == "__main__":
+
+    threading.Thread(target=log_in_file, daemon=True).start()
+    
+    threading.Thread(target=monitor_ports, daemon=True).start()
+
     main()
