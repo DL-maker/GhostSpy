@@ -9,20 +9,21 @@
 </head>
 
 <body>
-    <div class="navbar">
-        <img src="SpyGhost_icon.png" alt="Logo de l'application" height="41.6" width="41.6">
+        <div class="navbar">
+        <a href="/"> <img src="SpyGhost_icon.png" alt="Logo de l'application" height="50.6" width="50.6"> </a>
         <input type="text" placeholder="Rechercher un appareil...">
-        <div class="client-count">Connectés: <span id="connected-count">0</span> / Non Connectés: <span id="disconnected-count">0</span></div>
-        <button id="api-button">API</button>
-        <button id="settings-button">Settings</button>
-    </div>
+        <div class="client-count">Connectés: <span id="connected-count">0</span> </br> Non Connectés: <span id="disconnected-count">0</span></div>
+        <a href="./init_db.html"> <button id="api-button" >Reset DB</button> </a>
+        <a href="./setting.html"><button id="settings-button">Settings</button></a>
+        </div>
 
     <div class="client-list" id="client-list">
         </div>
 
     <div class="device-page" id="device-page" style="display: none;">
         <h2>Surveillance de l'appareil <span id="device-name-header"></span></h2>
-
+        <!-- Les indicateurs de fonctionnalités seront insérés ici par JavaScript -->
+        
         <div class="resources-area">
             <h3>Ressources système</h3>
             <div class="resource-metrics">

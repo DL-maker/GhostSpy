@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpyGhost - Initialisation de la base de données</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Initialisation de la base de données SpyGhost</h1>
+        <p>Cette page permet de réinitialiser la base de données en cas de problème avec le schéma.</p>
+        <p><strong>Attention :</strong> Cette action va supprimer toutes les données existantes !</p>
+        
+        <button id="resetButton" class="btn">Réinitialiser la base de données</button>
+        
+        <div id="resultAlert" style="display: none;" class="alert"></div>
+    </div>
+
+    <script>
+        document.getElementById('resetButton').addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser la base de données ? Cette action est irréversible.')) {
+                fetch('/reset_database', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const alert = document.getElementById('resultAlert');
+                    alert.style.display = 'block';
+                    
+                    if (data.message.includes('succès')) {
+                        alert.className = 'alert alert-success';
+                        alert.textContent = 'Base de données réinitialisée avec succès! Vous pouvez maintenant utiliser l\'application.';
+                    } else {
+                        alert.className = 'alert alert-danger';
+                        alert.textContent = data.message;
+                    }
+                })
+                .catch(error => {
+                    const alert = document.getElementById('resultAlert');
+                    alert.style.display = 'block';
+                    alert.className = 'alert alert-danger';
+                    alert.textContent = 'Erreur: ' + error.message;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

