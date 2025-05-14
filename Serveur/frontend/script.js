@@ -75,6 +75,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Activer les boutons de commande
         enableCommandButtons();
+
+        // Fetch and apply client settings
+        fetch(`/client/${clientId}/settings/admin`)
+            .then(response => response.json())
+            .then(settings => {
+                applyFeatureVisibility(settings);
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération des paramètres:", error);
+            });
     }
 
     // Fonction pour activer/désactiver les boutons de commande en fonction de la sélection d'appareil
@@ -95,19 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Vérifier s'il y a un client précédemment sélectionné à restaurer
-    if (localStorage.getItem('currentClientId')) {
-        const storedClientId = localStorage.getItem('currentClientId');
-        const storedClientName = localStorage.getItem('currentClientName');
-        
-        // Attendre un peu pour s'assurer que la liste des clients est chargée
-        setTimeout(() => {
-            if (storedClientId && storedClientName) {
-                window.showDevicePage(storedClientId, storedClientName);
-            }
-        }, 1000);
-    }
-
     window.disconnectClient = function(clientId) {
         fetch(`/client/${clientId}/disconnect`, {
             method: 'POST',
@@ -127,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
         stopResourcePolling();
         stopLogsPolling();
         stopScanResultsPolling(); // Stop polling for scan results
+        
+        // Effacer les données stockées pour éviter toute restauration future
+        localStorage.removeItem('currentClientId');
+        localStorage.removeItem('currentClientName');
     });
 
     function fetchScreenshot(clientId) {
@@ -984,6 +985,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Activer les boutons de commande
         enableCommandButtons();
+
+        // Fetch and apply client settings
+        fetch(`/client/${clientId}/settings/admin`)
+            .then(response => response.json())
+            .then(settings => {
+                applyFeatureVisibility(settings);
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération des paramètres:", error);
+            });
     }
 
     // Ajouter les événements pour les filtres d'historique
@@ -1023,4 +1034,130 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 10000); // Mise à jour toutes les 10 secondes
     });
+});
+
+function openClientSettings(clientId) {
+    window.location.href = `settings.html?client_id=${clientId}`;
+}
+
+// Adapter la fonction qui affiche les clients pour inclure un bouton Settings
+function displayClients(clients) {
+    const clientList = document.getElementById('clientList');
+    clientList.innerHTML = '';
+    
+    clients.forEach(client => {
+        // Autres éléments d'affichage existants...
+        
+        // Ajouter un bouton Settings
+        const settingsButton = document.createElement('button');
+        settingsButton.className = 'btn btn-info btn-sm';
+        settingsButton.innerHTML = '<i class="material-icons">settings</i> Paramètres';
+        settingsButton.onclick = function() {
+            openClientSettings(client.id);
+        };
+        
+        // Ajouter le bouton au conteneur des actions du client
+        const actionsContainer = document.getElementById(`client-actions-${client.id}`);
+        actionsContainer.appendChild(settingsButton);
+    });
+}
+
+// Fonction pour appliquer les états visuels en fonction des paramètres activés/désactivés
+function applyFeatureVisibility(settings) {
+    // Système de ressources
+    const resourcesArea = document.querySelector('.resources-area');
+    toggleSectionVisibility(resourcesArea, settings.system_resources_enabled, "Surveillance des ressources désactivée");
+    
+    // Logs d'activité
+    const logsArea = document.querySelector('.logs-area');
+    toggleSectionVisibility(logsArea, settings.activity_logs_enabled, "Journalisation des activités désactivée");
+    
+    // Détection de fichiers suspects
+    const malwareScanArea = document.querySelector('.malware-scan-area');
+    toggleSectionVisibility(malwareScanArea, settings.file_detection_enabled, "Détection de fichiers suspects désactivée");
+    
+    // Si VirusTotal est désactivé mais la détection de fichiers est activée, afficher un message
+    if (!settings.virustotal_enabled && settings.file_detection_enabled && malwareScanArea) {
+        const vtWarning = document.createElement('div');
+        vtWarning.className = 'alert alert-warning';
+        vtWarning.textContent = 'L\'analyse VirusTotal est désactivée. Les fichiers suspects sont détectés mais pas analysés.';
+        malwareScanArea.prepend(vtWarning);
+    }
+    
+    // Afficher un résumé des fonctionnalités actives
+    updateFeatureIndicators(settings);
+}
+
+function toggleSectionVisibility(element, isEnabled, disabledMessage) {
+    if (!element) return;
+    
+    if (isEnabled) {
+        element.classList.remove('disabled-section');
+        // Supprimer l'icône si elle existe
+        const existingIcon = element.querySelector('.disabled-icon');
+        if (existingIcon) {
+            element.removeChild(existingIcon);
+        }
+    } else {
+        element.classList.add('disabled-section');
+        
+        // S'assurer qu'on n'ajoute pas plusieurs icônes
+        if (!element.querySelector('.disabled-icon')) {
+            const disabledIcon = document.createElement('div');
+            disabledIcon.className = 'disabled-icon';
+            disabledIcon.textContent = '✕';
+            disabledIcon.title = disabledMessage;
+            element.appendChild(disabledIcon);
+        }
+    }
+}
+
+function updateFeatureIndicators(settings) {
+    const devicePage = document.getElementById('device-page');
+    if (!devicePage) return;
+    
+    // Vérifier si le conteneur d'indicateurs existe déjà, sinon le créer
+    let indicatorsContainer = devicePage.querySelector('.feature-indicators');
+    if (!indicatorsContainer) {
+        indicatorsContainer = document.createElement('div');
+        indicatorsContainer.className = 'feature-indicators';
+        
+        // Insérer après le titre de l'appareil
+        const deviceTitle = devicePage.querySelector('h2');
+        if (deviceTitle && deviceTitle.nextSibling) {
+            devicePage.insertBefore(indicatorsContainer, deviceTitle.nextSibling);
+        } else {
+            devicePage.prepend(indicatorsContainer);
+        }
+    } else {
+        // Vider le conteneur existant
+        indicatorsContainer.innerHTML = '';
+    }
+    
+    // Créer les indicateurs de fonctionnalités
+    const features = [
+        { name: 'Ressources système', enabled: settings.system_resources_enabled },
+        { name: 'Journaux d\'activité', enabled: settings.activity_logs_enabled },
+        { name: 'Détection de fichiers', enabled: settings.file_detection_enabled },
+        { name: 'Analyse VirusTotal', enabled: settings.virustotal_enabled }
+    ];
+    
+    features.forEach(feature => {
+        const indicator = document.createElement('div');
+        indicator.className = `feature-indicator ${feature.enabled ? 'feature-enabled' : 'feature-disabled'}`;
+        indicator.innerHTML = `<i>${feature.enabled ? '✓' : '✕'}</i> ${feature.name}`;
+        indicatorsContainer.appendChild(indicator);
+    });
+}
+
+// Pour s'assurer que les états visuels sont appliqués aussi lors du chargement initial de la page
+// si un client est déjà sélectionné (depuis localStorage par exemple)
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si un client était précédemment sélectionné
+    const savedClientId = localStorage.getItem('currentClientId');
+    const savedClientName = localStorage.getItem('currentClientName');
+    
+    if (savedClientId && savedClientName) {
+        showDevicePage(savedClientId, savedClientName);
+    }
 });

