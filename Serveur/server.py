@@ -12,15 +12,98 @@ import customtkinter as ctk
 
 app = Flask(__name__)
 
-# Configuration de l'authentification
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD = 'SpyGhost2025!'  # Mot de passe admin mis à jour
-
 CONFIG_FILE = 'config.json'
 DATABASE = 'clients.db'
 SCREENSHOT_FOLDER = 'screenshots'
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), SCREENSHOT_FOLDER)
 TIMEOUT_SECONDES = 60  # Définir le délai après lequel un client est considéré comme déconnecté (ici 60 secondes)
+
+def load_credentials():
+    # regarde si les identifiants ont déjà été créer ou non
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+            return config.get('admin_username', ''), config.get('admin_password', '')
+    return None, None
+
+def save_credentials(username, password):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump({
+            'admin_username': username,
+            'admin_password': password
+        }, f)
+
+
+class Interface(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.geometry("600x400")
+        self.title("Interface Administrateur")
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.admin_username = ""
+        self.admin_password = ""
+
+        #frame
+        frame = ctk.CTkFrame(master=self)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        frame.pack(pady=20, padx=40, fill="x", expand=True)
+
+        #Info pour se connecter
+        label = ctk.CTkLabel(master=frame, text='Connection à la session', font=("Geist", 16))
+        label.pack(pady=12, padx=10)
+
+        self.user_entry = ctk.CTkEntry(master=frame, placeholder_text="Pseudo", width=300, height=40, font=("Geist", 14))
+        self.user_entry.pack(pady=12, padx=10)
+
+        self.user_pass = ctk.CTkEntry(master=frame, placeholder_text="Mot de passe", width=300, height=40, show="*", font=("Geist", 14))
+        self.user_pass.pack(pady=12, padx=10)
+
+        self.user_confirm_pass = ctk.CTkEntry(master=frame, placeholder_text="Confirmer le mot de passe", width=300, height=40, show="*", font=("Geist", 14))
+        self.user_confirm_pass.pack(pady=12, padx=10)
+
+        button = ctk.CTkButton(master=frame, text='Se connecter', command=self.login, font=("Geist", 14))
+        button.pack(pady=12, padx=10)
+
+        #Label qui s'affiche seulement si les deux mots de passe ne sont pas les même
+        self.label_status = ctk.CTkLabel(master=frame, text="", font=("Arial", 20))
+        self.label_status.pack(padx=10)
+
+    def on_closing(self):
+            quit()
+            
+    def login(self):
+        username = self.user_entry.get()
+        passwd = self.user_pass.get()
+        confirm = self.user_confirm_pass.get()
+
+        if passwd != confirm:
+            self.label_status.configure(text="Les mots de passe ne correspondent pas.", text_color="red")
+            self.user_pass.delete(0, "end")
+            self.user_confirm_pass.delete(0, "end")
+            return
+
+        self.label_status.configure(text = "Les identifiant ont bien été configurés.", text_color="green")
+        save_credentials(username, passwd)
+        self.admin_username = username
+        self.admin_password = passwd
+        self.destroy()  # Close the window
+
+
+
+# Create/Chargement des identifiants
+ADMIN_USERNAME, ADMIN_PASSWORD = load_credentials()
+
+if ADMIN_USERNAME is None or ADMIN_PASSWORD is None or ADMIN_USERNAME == '' or ADMIN_PASSWORD == '':
+    interface = Interface()
+    interface.mainloop()
+    ADMIN_USERNAME = interface.admin_username
+    ADMIN_PASSWORD = interface.admin_password
+    print(f"\n✅ Identifiants enregistrés : {ADMIN_USERNAME} / {ADMIN_PASSWORD}\n")
+else:
+    print(f"\n✅ Configuration chargée depuis {CONFIG_FILE} : {ADMIN_USERNAME} / {ADMIN_PASSWORD}\n")
 
 # Fonction pour l'authentification HTTP Basic
 def auth_required(f):
