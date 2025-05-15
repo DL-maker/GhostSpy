@@ -15,12 +15,13 @@ import threading
 import logging
 import colorama  # Add colorama for colored console output
 import ctypes    # Import ctypes for direct Windows API access
+import customtkinter as ctk
 
 # Initialize colorama
 colorama.init(autoreset=True)
 
 # Configuration
-SERVER_URL = "http://127.0.0.1:5000"  # Adaptez si votre serveur est ailleurs
+CONFIG_FILE = 'config.json'
 API_KEY = "API"  # Remplacez par votre clé API VirusTotal
 VT_BASE_URL = "https://www.virustotal.com/api/v3"
 LOG_FILE = "client_vt.log"
@@ -59,6 +60,78 @@ MONITORED_EXTENSIONS = [
 ]
 # Monitorer tous les dossiers utilisateur pour les logs mais uniquement Downloads pour VirusTotal
 VT_SCAN_FOLDERS = ['Downloads']
+
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.geometry("600x400")
+        self.title("Interface Client")
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+        self.server_url = ""
+
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                config = json.load(f)
+                server_url = config.get('server_url', '')
+                if server_url:
+                    print(f"\n✅ Configuration chargée depuis {CONFIG_FILE} : {server_url}\n")
+                    quit()
+                    
+        def try_post(url, json):
+            try:
+                return requests.post(url, json=json, timeout=5).status_code
+            except requests.RequestException:
+                return None  # or any value that lets you detect failure
+
+        def login():
+            ip_input = ip_entry.get()
+
+            #data
+            client_name = platform.node()
+            os_type = platform.platform()
+            checkin_data = {'name': client_name, 'os_type': os_type}
+            self.server_url = f"http://{ip_input}:5000"
+
+            #vérification de l'IP
+            if (response := try_post(f"{self.server_url}/client/checkin", json=checkin_data)) is None or response.status_code != 200:
+                label_ip.configure(text="L'ip n'est pas la bonne.\n Veillez réessayer.", text_color="red")
+                ip_entry.delete(0, "end")
+                self.server_url = ""
+            else:
+                label_ip.configure(text="L'ip trouvé. Connexion.", text_color="green")
+
+                #Mettre l'ip dans le JSON
+                server_url = f"http://{ip_input}:5000"
+                with open(CONFIG_FILE, 'w') as f:
+                    json.dump({'server_url': server_url}, f)
+
+                self.after(5000, close_interface) # Attends 5 secondes avant de fermer l'interface
+
+        #frame
+        frame = ctk.CTkFrame(master=self)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        frame.pack(pady=20, padx=40, fill="x", expand=True)
+        
+        #infos pour se connecter avec l'addresse IP
+        label = ctk.CTkLabel(master=frame, text='Connection au serveur Administrateur', font=("Geist", 16))
+        label.pack(pady=12, padx=10)
+
+        ip_entry = ctk.CTkEntry(master=frame, placeholder_text="Ip de l'administrateur", width=300, height=40, font=("Geist", 14))
+        ip_entry.pack(pady=12, padx=10)
+
+        button = ctk.CTkButton(master=frame, text='Se connecter', command=login, font=("Geist", 14))
+        button.pack(pady=12, padx=10)
+
+        #Label qui affiche si le client va se connecter ou non
+        label_ip = ctk.CTkLabel(master=frame, text="", font=("Geist", 18))
+        label_ip.pack(pady=(20,0), padx=10)
+
+        def close_interface():
+            quit()
+
+app = App()
+app.mainloop()
 
 class ClientLogs:
     def __init__(self):
@@ -107,7 +180,7 @@ def send_client_logs(client_id):
             logs = client_logs.get_logs()
             if logs:
                 # Send logs to server
-                response = requests.post(f"{SERVER_URL}/client/{client_id}/logs", json=logs, timeout=10)
+                response = requests.post(f"{app.server_url}/client/{client_id}/logs", json=logs, timeout=10)
                 
                 if response.status_code == 200:
                     print(colorama.Fore.GREEN + "✅ Logs envoyés au serveur")
@@ -212,7 +285,7 @@ def execute_command(command):
 
 def check_for_command(client_id):
     try:
-        response = requests.get(f"{SERVER_URL}/client/{client_id}/getcommand")
+        response = requests.get(f"{app.server_url}/client/{client_id}/getcommand")
         if response.status_code == 200:
             data = response.json()
             if 'command' in data and data['command']:
@@ -226,7 +299,7 @@ def check_for_command(client_id):
                     'command': command_to_execute,
                     'command_id': command_id
                 }
-                requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
+                requests.post(f"{app.server_url}/client/{client_id}/commandresult", json=result)
     except Exception as e:
         logger.error(f"Erreur lors de la vérification des commandes: {e}")
 
@@ -239,7 +312,7 @@ def change_api(api):
     
 def check_for_api(client_id):
     try:
-        response = requests.get(f"{SERVER_URL}/client/{client_id}/token")
+        response = requests.get(f"{app.server_url}/client/{client_id}/token")
       
         if response.status_code == 200:
             data = response.json()
@@ -248,14 +321,14 @@ def check_for_api(client_id):
                 logger.info(f"Api reçue du serveur: {api_to_execute}")
                 key = change_api(api_to_execute)
                 result = {'stdout': "API key updated successfully", 'stderr': "", 'command': "update_api_key"}
-                requests.post(f"{SERVER_URL}/client/{client_id}/commandresult", json=result)
+                requests.post(f"{app.server_url}/client/{client_id}/commandresult", json=result)
     except Exception as e:
         logger.error(f"Erreur lors de la vérification API: {e}")
 
 # Fonction pour récupérer et mettre à jour les paramètres du client
 def update_client_settings(client_id):
     try:
-        response = requests.get(f"{SERVER_URL}/client/settings?client_id={client_id}", timeout=10)
+        response = requests.get(f"{app.server_url}/client/settings?client_id={client_id}", timeout=10)
         if response.status_code == 200:
             settings = response.json()
             
@@ -424,7 +497,7 @@ def calculate_file_hash(file_path):
 
 def send_scan_result_to_server(scan_result, client_id):
     try:
-        response = requests.post(f"{SERVER_URL}/client/{client_id}/scan_file", json=scan_result)
+        response = requests.post(f"{app.server_url}/client/{client_id}/scan_file", json=scan_result)
         if response.status_code == 200:
             logger.info(f"Résultats d'analyse pour {scan_result['file_name']} envoyés avec succès")
         else:
@@ -661,7 +734,7 @@ def main():
 
     checkin_data = {'name': client_name, 'os_type': os_type}
     try:
-        response = requests.post(f"{SERVER_URL}/client/checkin", json=checkin_data)
+        response = requests.post(f"{app.server_url}/client/checkin", json=checkin_data)
         if response.status_code == 200:
             client_id_data = response.json()
             client_id = client_id_data.get('client_id')
@@ -726,7 +799,7 @@ def main():
     while True:
         try:
             # Check-in régulier avec le serveur
-            requests.post(f"{SERVER_URL}/client/checkin", json=checkin_data)
+            requests.post(f"{app.server_url}/client/checkin", json=checkin_data)
         except requests.exceptions.RequestException as e:
             logger.error(f"Erreur lors du check-in régulier: {e}")
 
@@ -735,7 +808,7 @@ def main():
         if screenshot_data:
             try:
                 files = {'screenshot': ('screenshot.png', screenshot_data, 'image/png')}
-                requests.post(f"{SERVER_URL}/client/{client_id}/screenshot", files=files)
+                requests.post(f"{app.server_url}/client/{client_id}/screenshot", files=files)
             except requests.exceptions.RequestException as e:
                 logger.error(f"Erreur lors de l'envoi du screenshot: {e}")
 
@@ -744,7 +817,7 @@ def main():
             resources = collect_system_resources()
             if resources:
                 try:
-                    requests.post(f"{SERVER_URL}/client/{client_id}/resources", json=resources)
+                    requests.post(f"{app.server_url}/client/{client_id}/resources", json=resources)
                     logger.debug("Ressources système envoyées")
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Erreur lors de l'envoi des ressources: {e}")
