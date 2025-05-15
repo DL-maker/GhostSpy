@@ -73,8 +73,8 @@ class App(ctk.CTk):
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                server_url = config.get('server_url', '')
-                if server_url:
+                self.server_url = config.get('server_url', '')
+                if self.server_url:
                     print(f"\n✅ Configuration chargée depuis {CONFIG_FILE} : {server_url}\n")
                     quit()
                     
@@ -102,7 +102,7 @@ class App(ctk.CTk):
                 label_ip.configure(text="L'ip trouvé. Connexion.", text_color="green")
 
                 #Mettre l'ip dans le JSON
-                server_url = f"http://{ip_input}:5000"
+                self.server_url = f"http://{ip_input}:5000"
                 with open(CONFIG_FILE, 'w') as f:
                     json.dump({'server_url': server_url}, f)
 

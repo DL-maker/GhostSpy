@@ -8,6 +8,7 @@ import time
 import os
 import threading
 from functools import wraps
+import customtkinter as ctk
 
 app = Flask(__name__)
 
@@ -15,6 +16,7 @@ app = Flask(__name__)
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'SpyGhost2025!'  # Mot de passe admin mis à jour
 
+CONFIG_FILE = 'config.json'
 DATABASE = 'clients.db'
 SCREENSHOT_FOLDER = 'screenshots'
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), SCREENSHOT_FOLDER)
