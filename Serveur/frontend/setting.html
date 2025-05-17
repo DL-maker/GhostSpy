@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpyGhost - Paramètres du Client</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="wrapper">
+        <div class="navbar">
+        <a href="/"> <img src="SpyGhost_icon.png" alt="Logo de l'application" height="41.6" width="41.6"> </a>
+        <input type="text" placeholder="Rechercher un appareil...">
+        <div class="client-count">Connectés: <span id="connected-count">0</span> </br> Non Connectés: <span id="disconnected-count">0</span></div>
+        <a href="./init_db.html"> <button id="api-button" >Reset DB</button> </a>
+        <a href="./setting.html"><button id="settings-button">Settings</button></a>
+        </div>
+        <div class="main-panel">
+            <div class="content">
+                <div class="container-fluid">
+                    <div class="settings-container">
+                        <h2 class="settings-title">Configuration des fonctionnalités pour tous les clients</h2>
+                        
+                        <div class="alert alert-info">
+                            Ces paramètres seront appliqués à tous les clients connectés au système.
+                        </div>
+                        
+                        <div id="settingsAlert" class="alert alert-success alert-settings" style="display: none;">
+                            Paramètres sauvegardés avec succès!
+                        </div>
+                        
+                        <div class="settings-group">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="virustotalEnabled">
+                                <label class="form-check-label" for="virustotalEnabled">
+                                    Analyse VirusTotal
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Permet l'analyse des fichiers suspects avec l'API VirusTotal pour détecter les menaces potentielles.
+                            </p>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="activityLogsEnabled">
+                                <label class="form-check-label" for="activityLogsEnabled">
+                                    Journalisation des activités
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Enregistre les activités du système comme la création, modification et suppression de fichiers.
+                            </p>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="fileDetectionEnabled">
+                                <label class="form-check-label" for="fileDetectionEnabled">
+                                    Détection de fichiers suspects
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Surveille la création et modification de fichiers potentiellement dangereux dans les dossiers sensibles.
+                            </p>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="systemResourcesEnabled">
+                                <label class="form-check-label" for="systemResourcesEnabled">
+                                    Surveillance des ressources système
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Collecte et envoie des informations sur l'utilisation du CPU, de la mémoire et du disque.
+                            </p>
+                        </div>
+                        
+                        <button id="saveSettings" class="btn btn-save">
+                            Appliquer à tous les clients
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Correction des chemins de JS -->
+    <script>
+        // Authentification pour les requêtes aux routes protégées
+        const authHeader = 'Basic ' + btoa('admin:SpyGhost2025!');
+        
+        // Charger les paramètres globaux actuels
+        function loadGlobalSettings() {
+            fetch('/global/settings', {
+                method: 'GET',
+                headers: {
+                    'Authorization': authHeader
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Erreur lors de la récupération des paramètres ou de la DB veuille initialisée vérifier DB ");
+                    }
+                    return response.json();
+                })
+                .then(settings => {
+                    // Mettre à jour les interrupteurs avec les valeurs actuelles
+                    document.getElementById("virustotalEnabled").checked = settings.virustotal_enabled;
+                    document.getElementById("activityLogsEnabled").checked = settings.activity_logs_enabled;
+                    document.getElementById("fileDetectionEnabled").checked = settings.file_detection_enabled;
+                    document.getElementById("systemResourcesEnabled").checked = settings.system_resources_enabled;
+                })
+                .catch(error => {
+                    console.error("Erreur:", error);
+                    document.getElementById("settingsAlert").style.display = "block";
+                    document.getElementById("settingsAlert").className = "alert alert-danger alert-settings";
+                    document.getElementById("settingsAlert").textContent = "Impossible de charger les paramètres globaux: " + error.message;
+                });
+        }
+        
+        // Sauvegarder les paramètres pour tous les clients
+        document.getElementById("saveSettings").addEventListener("click", function() {
+            // Récupérer les valeurs des interrupteurs
+            const settings = {
+                virustotal_enabled: document.getElementById("virustotalEnabled").checked,
+                activity_logs_enabled: document.getElementById("activityLogsEnabled").checked,
+                file_detection_enabled: document.getElementById("fileDetectionEnabled").checked,
+                system_resources_enabled: document.getElementById("systemResourcesEnabled").checked
+            };
+            
+            // Envoyer les paramètres au serveur pour tous les clients
+            fetch('/global/settings', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": authHeader
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erreur lors de la sauvegarde des paramètres");
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Afficher une notification de succès
+                const alertElement = document.getElementById("settingsAlert");
+                alertElement.style.display = "block";
+                alertElement.className = "alert alert-success alert-settings";
+                alertElement.textContent = `Paramètres appliqués avec succès à ${data.clients_updated} clients!`;
+                
+                // Masquer la notification après quelques secondes
+                setTimeout(() => {
+                    alertElement.style.display = "none";
+                }, 3000);
+            })
+            .catch(error => {
+                console.error("Erreur:", error);
+                const alertElement = document.getElementById("settingsAlert");
+                alertElement.style.display = "block";
+                alertElement.className = "alert alert-danger alert-settings";
+                alertElement.textContent = "Erreur lors de la sauvegarde des paramètres";
+            });
+        });
+        
+        // Charger les paramètres au chargement de la page
+        document.addEventListener('DOMContentLoaded', loadGlobalSettings);
+    </script>
+</body>
+</html>
