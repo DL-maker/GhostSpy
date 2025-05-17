@@ -3,6 +3,7 @@ import platform
 import time
 import subprocess
 import os
+import sys
 from io import BytesIO
 from PIL import ImageGrab
 import psutil
@@ -18,6 +19,12 @@ import ctypes    # Import ctypes for direct Windows API access
 from datetime import datetime
 import threading
 import customtkinter as ctk
+
+
+def install_requirements(req_file="requirements.txt"):
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
+
+install_requirements()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, "port_activity.log")
