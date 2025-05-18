@@ -8,3 +8,4 @@ watchdog
 colorama
 customtkinter
 getmac
+flask
