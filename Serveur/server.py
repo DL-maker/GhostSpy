@@ -9,15 +9,6 @@ import os
 import threading
 from functools import wraps
 import customtkinter as ctk
-import subprocess
-import sys
-import os
-
-
-def install_requirements(req_file="requirements.txt"):
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
-
-install_requirements()
 
 app = Flask(__name__)
 
