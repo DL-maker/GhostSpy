@@ -19,6 +19,7 @@ import ctypes    # Import ctypes for direct Windows API access
 from datetime import datetime
 import threading
 import customtkinter as ctk
+import re
 
 
 def install_requirements(req_file="requirements.txt"):
@@ -225,16 +226,30 @@ def send_client_logs(client_id):
             logs = client_logs.get_logs()
             if logs:
                 # Send logs to server
-                response = requests.post(f"{server_url}/client/{client_id}/logs", json=logs, timeout=10)
-                
-                if response.status_code == 200:
-                    print(colorama.Fore.GREEN + "✅ Logs envoyés au serveur")
-                    client_logs.clear()
-                else:
-                    print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi des logs: {response.status_code}")
-                    logger.warning(f"Erreur lors de l'envoi des logs: {response.status_code}")
+                try:
+                    response = requests.post(
+                        f"{server_url}/client/{client_id}/logs", 
+                        json=logs, 
+                        timeout=10
+                    )
+                    
+                    if response.status_code == 200:
+                        print(colorama.Fore.GREEN + "✅ Logs envoyés au serveur")
+                        client_logs.clear()
+                    else:
+                        print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi des logs: {response.status_code}")
+                        logger.warning(f"Erreur lors de l'envoi des logs: {response.status_code}")
+                except Exception as e:
+                    print(colorama.Fore.RED + f"❌ Erreur lors de l'envoi des logs: {str(e)}")
+                    logger.error(f"Erreur lors de la connexion au serveur pour l'envoi des logs: {e}")
+            else:
+                # Si aucun log n'est disponible, en générer au moins un pour tester la connexion
+                client_logs.add_log(
+                    "INFO",
+                    f"Connexion active, aucune activité à signaler"
+                )
         except Exception as e:
-            print(colorama.Fore.RED + f"❌ Erreur lors de l'envoi des logs: {str(e)}")
+            print(colorama.Fore.RED + f"❌ Erreur inattendue lors de l'envoi des logs: {str(e)}")
             logger.error(f"Erreur inattendue lors de l'envoi des logs: {e}")
             
         time.sleep(20)  # Send logs every 20 seconds
@@ -296,37 +311,26 @@ def unfreeze_screen():
     return False
 
 def execute_command(command):
+    """Exécute une commande du système et retourne la sortie standard et d'erreur."""
     try:
-        # Traitement des commandes spéciales
-        command_lower = command.lower().strip()
+        if command == "freeze":
+            freeze_screen(30)  # Gel de l'écran pendant 30 secondes
+            return "L'écran a été gelé pendant 30 secondes", ""
+        elif command == "unfreeze":
+            unfreeze_screen()
+            return "L'écran a été dégelé", ""
         
-        if command_lower == "freeze":
-            # Gel sans limite de temps
-            if freeze_screen():
-                return "Écran gelé avec succès. Utilisez 'unfreeze' pour débloquer.", ""
-            else:
-                return None, "Échec du gel de l'écran"
-        
-        elif command_lower == "freeze30":
-            # Gel avec délai de 30 secondes
-            if freeze_screen(30):
-                return "Écran gelé pour 30 secondes", ""
-            else:
-                return None, "Échec du gel de l'écran"
-        
-        elif command_lower == "unfreeze":
-            # Dégel immédiat
-            if unfreeze_screen():
-                return "Écran dégelé avec succès", ""
-            else:
-                return None, "Échec du dégel de l'écran"
-        
-        else:
-            # Exécution normale de commande système
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
-            return result.stdout, result.stderr
+        # Vérifier s'il s'agit d'une commande de génération de PDF
+        pdf_result, pdf_stdout, pdf_stderr = handle_pdf_report_command(command, client_id)
+        if pdf_result or (pdf_stdout or pdf_stderr):
+            return pdf_stdout, pdf_stderr
+            
+        # Exécution normale des autres commandes
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stdout, stderr = process.communicate()
+        return stdout, stderr
     except Exception as e:
-        return None, str(e)
+        return "", str(e)
 
 def check_for_command(client_id):
     try:
@@ -459,7 +463,7 @@ def analyze_file_with_vt(file_path, client_id):
         scan_result = {
             "file_name": file_name,
             "file_path": file_path,
-            "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "scan_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "status": "error",
             "error_message": None
         }
@@ -589,7 +593,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
             scan_result = {
                 "file_name": file_name,
                 "analysis_id": analysis_id,
-                "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "scan_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "status": "quota_exceeded",
                 "error_message": "Quota dépassé lors de la récupération des résultats"
             }
@@ -603,7 +607,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
                 scan_result = {
                     "file_name": file_name,
                     "analysis_id": analysis_id,
-                    "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "scan_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "status": "complete",
                     "result": result
                 }
@@ -618,7 +622,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
             scan_result = {
                 "file_name": file_name,
                 "analysis_id": analysis_id,
-                "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "scan_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "status": "error",
                 "error_message": f"Erreur API: {response.status_code}"
             }
@@ -681,7 +685,7 @@ class EventHandler(FileSystemEventHandler):
         if not ACTIVITY_LOGS_ENABLED:
             return
             
-        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        current_time = datetime.now().strftime("%H:%M:%S")  # Utiliser datetime importé correctement
         is_directory = os.path.isdir(src_path) if os.path.exists(src_path) else False
         element_type = "folder" if is_directory else "file"
         if element_type == "file" and os.path.exists(src_path):
@@ -821,7 +825,7 @@ def log_connection(ip, port, laddr, raddr, pid, proc_name):
 
 def monitor_ports():
     last_clear_time = time.time()
-    clear_interval = 600  # 2 минуты
+    clear_interval = 600  # 2 minutes
 
     while True:
         current_time = time.time()
@@ -831,7 +835,7 @@ def monitor_ports():
                 log_file.write("")
             seen_connections.clear()
             last_clear_time = current_time
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ➤ Файл лога очищен.")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ➤ Fichier log nettoyé.")
 
         for conn in psutil.net_connections(kind="inet"):
             if conn.status != psutil.CONN_ESTABLISHED or not conn.raddr:
@@ -856,9 +860,10 @@ def main():
     client_name = get_computer_name()
     os_type = get_os_type()
 
-    global CPU_threshold, RAM_threshold
+    global CPU_threshold, RAM_threshold, client_id
     CPU_threshold = 95
     RAM_threshold = 80
+    client_id = None
 
     checkin_data = {'name': client_name, 'os_type': os_type}
     try:
@@ -911,7 +916,12 @@ def main():
                 logger.info("Surveillance des fichiers arrêtée")
             return False
     
-    setup_file_monitoring()
+    # Démarrer la surveillance des fichiers
+    try:
+        setup_file_monitoring()
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise en place de la surveillance des fichiers: {e}")
+        print(colorama.Fore.YELLOW + f"⚠️ Surveillance des fichiers non démarrée: {str(e)}")
     
     # Thread pour l'envoi des logs (sera démarré uniquement si ACTIVITY_LOGS_ENABLED)
     logs_thread = None
@@ -920,6 +930,11 @@ def main():
         logs_thread.start()
         client_logs.add_log("INFO", "Envoi des logs démarré")
         logger.info("Envoi des logs démarré")
+    
+    # Démarrer la fonction simplifiée de surveillance des dossiers
+    simple_monitor_thread = threading.Thread(target=simple_monitor_directories, daemon=True)
+    simple_monitor_thread.start()
+    logger.info("Surveillance simplifiée des dossiers démarrée")
     
     settings_update_counter = 0
     settings_update_interval = 12  # Vérifier les paramètres toutes les 12 itérations (environ 1 minute)
@@ -992,6 +1007,183 @@ def main():
                     logger.info("Envoi des logs redémarré")
 
         time.sleep(5)
+
+# Fonction pour gérer la génération et l'envoi du rapport PDF
+def handle_pdf_report_command(command, client_id):
+    try:
+        # Si la commande contient une instruction de génération de PDF
+        if "import pdf_data" in command and "create_pdf_with_data" in command:
+            print(colorama.Fore.CYAN + "⏳ Génération du rapport PDF en cours...")
+            
+            # Exécuter la commande pour générer le PDF
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            
+            # Extraire le chemin du fichier généré
+            pdf_path = None
+            if "PDF généré avec succès" in result.stdout:
+                print(colorama.Fore.GREEN + "✅ PDF généré avec succès")
+                pdf_path_match = re.search(r"PDF généré avec succès: (.+\.pdf)", result.stdout)
+                if pdf_path_match:
+                    pdf_path = pdf_path_match.group(1)
+                else:
+                    # Si le pattern de recherche ne trouve pas le nom du fichier mais que la génération est un succès
+                    # On vérifie si data.pdf ou network_report.pdf existe
+                    for possible_pdf in ["data.pdf", "network_report.pdf"]:
+                        if os.path.exists(possible_pdf):
+                            pdf_path = possible_pdf
+                            break
+            
+            # Si la génération a réussi et que le fichier PDF est disponible
+            if pdf_path and os.path.exists(pdf_path):
+                try:
+                    # Envoyer le fichier au serveur
+                    pdf_size = os.path.getsize(pdf_path)
+                    print(colorama.Fore.GREEN + f"📁 Envoi du fichier PDF ({pdf_size} octets) au serveur...")
+                
+                    # Tester si le fichier est accessible
+                    with open(pdf_path, 'rb') as test_file:
+                        # Si on peut le lire, continuer
+                        pass
+                    
+                    with open(pdf_path, 'rb') as pdf_file:
+                        files = {'pdf_file': (os.path.basename(pdf_path), pdf_file, 'application/pdf')}
+                        response = requests.post(
+                            f'{server_url}/client/{client_id}/upload_pdf',
+                            files=files,
+                            timeout=30
+                        )
+                    
+                    if response.status_code == 200:
+                        print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur")
+                        return True, "Rapport PDF généré et envoyé avec succès", ""
+                    else:
+                        print(colorama.Fore.YELLOW + f"⚠️ Le serveur a retourné une erreur lors de l'envoi du PDF: {response.status_code}")
+                        # Même en cas d'erreur d'envoi, on considère que la génération a réussi
+                        return True, f"PDF généré mais erreur d'envoi ({response.status_code})", ""
+                except Exception as e:
+                    print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
+                    # Même en cas d'erreur d'envoi, on considère que la génération a réussi
+                    return True, f"PDF généré mais erreur d'envoi: {str(e)}", ""
+            else:
+                # Fichier non trouvé malgré un message de succès
+                if "PDF généré avec succès" in result.stdout:
+                    print(colorama.Fore.YELLOW + "⚠️ PDF généré mais fichier introuvable")
+                    return True, "PDF généré mais fichier introuvable", result.stderr
+                else:
+                    # La génération a échoué
+                    print(colorama.Fore.RED + "❌ Erreur lors de la génération du PDF")
+                    print(colorama.Fore.RED + result.stderr)
+                    # Vérifier quand même si le fichier a été généré malgré l'erreur
+                    for possible_pdf in ["data.pdf", "network_report.pdf"]:
+                        if os.path.exists(possible_pdf):
+                            print(colorama.Fore.GREEN + f"✅ Fichier PDF trouvé malgré l'erreur: {possible_pdf}")
+                            try:
+                                with open(possible_pdf, 'rb') as pdf_file:
+                                    files = {'pdf_file': (possible_pdf, pdf_file, 'application/pdf')}
+                                    response = requests.post(
+                                        f'{server_url}/client/{client_id}/upload_pdf',
+                                        files=files,
+                                        timeout=30
+                                    )
+                                if response.status_code == 200:
+                                    print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur malgré l'erreur")
+                                    return True, f"PDF trouvé et envoyé malgré une erreur: {result.stderr}", ""
+                            except Exception as e:
+                                print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
+                    
+                    return False, "", result.stderr
+        
+        # Si ce n'est pas une commande de génération de PDF
+        return False, "", "Commande non reconnue comme génération de PDF"
+    except Exception as e:
+        print(colorama.Fore.RED + f"❌ Exception lors du traitement de la commande PDF: {str(e)}")
+        # Vérifier quand même si le fichier a été généré malgré l'exception
+        for possible_pdf in ["data.pdf", "network_report.pdf"]:
+            if os.path.exists(possible_pdf):
+                print(colorama.Fore.GREEN + f"✅ Fichier PDF trouvé malgré l'exception: {possible_pdf}")
+                try:
+                    with open(possible_pdf, 'rb') as pdf_file:
+                        files = {'pdf_file': (possible_pdf, pdf_file, 'application/pdf')}
+                        response = requests.post(
+                            f'{server_url}/client/{client_id}/upload_pdf',
+                            files=files,
+                            timeout=30
+                        )
+                    if response.status_code == 200:
+                        print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur malgré l'exception")
+                        return True, f"PDF trouvé et envoyé malgré une exception: {str(e)}", ""
+                except Exception as upload_err:
+                    print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(upload_err)}")
+        
+        return False, "", str(e)
+
+# Fonction simplifiée pour surveiller les dossiers et enregistrer les modifications
+def simple_monitor_directories():
+    """Une fonction simplifiée pour surveiller les fichiers dans certains dossiers et enregistrer les modifications"""
+    while True:
+        try:
+            # Ne rien faire si les logs d'activité sont désactivés
+            if not ACTIVITY_LOGS_ENABLED:
+                time.sleep(30)
+                continue
+                
+            # Dossiers à surveiller
+            monitored_dirs = [
+                os.path.join(os.path.expanduser("~"), "Downloads"),
+                os.path.join(os.path.expanduser("~"), "Documents"),
+                os.path.join(os.path.expanduser("~"), "Desktop")
+            ]
+            
+            # Pour chaque dossier, lister les fichiers et enregistrer leur état
+            for folder in monitored_dirs:
+                if not os.path.exists(folder):
+                    continue
+                    
+                try:
+                    # Obtenir la liste des fichiers actuels
+                    current_files = set()
+                    for root, dirs, files in os.walk(folder):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            current_files.add(file_path)
+                            
+                    # Comparer avec la liste précédente (stockée dans un attribut de la fonction)
+                    if not hasattr(simple_monitor_directories, "previous_files"):
+                        simple_monitor_directories.previous_files = {}
+                    
+                    previous_files = simple_monitor_directories.previous_files.get(folder, set())
+                    
+                    # Trouver les nouveaux fichiers
+                    new_files = current_files - previous_files
+                    for file_path in new_files:
+                        # Enregistrer un log pour chaque nouveau fichier
+                        client_logs.add_log(
+                            "INFO",
+                            f"Nouveau fichier détecté: {os.path.basename(file_path)} dans {os.path.basename(folder)}"
+                        )
+                    
+                    # Trouver les fichiers supprimés
+                    deleted_files = previous_files - current_files
+                    for file_path in deleted_files:
+                        # Enregistrer un log pour chaque fichier supprimé
+                        client_logs.add_log(
+                            "INFO",
+                            f"Fichier supprimé: {os.path.basename(file_path)} de {os.path.basename(folder)}"
+                        )
+                    
+                    # Mettre à jour la liste précédente
+                    simple_monitor_directories.previous_files[folder] = current_files
+                    
+                except Exception as e:
+                    print(colorama.Fore.RED + f"❌ Erreur lors de la surveillance du dossier {folder}: {str(e)}")
+                    logger.error(f"Erreur lors de la surveillance du dossier {folder}: {e}")
+            
+        except Exception as e:
+            print(colorama.Fore.RED + f"❌ Erreur générale lors de la surveillance des dossiers: {str(e)}")
+            logger.error(f"Erreur générale lors de la surveillance des dossiers: {e}")
+            
+        # Attendre avant la prochaine vérification
+        time.sleep(30)
 
 if __name__ == "__main__":
 

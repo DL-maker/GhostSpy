@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <title>Surveillance PC</title>
     <link href="style.css" rel="stylesheet" />
-    <script type="text/javascript" src="script.js"></script>
-
+    <script src="script.js"></script>
 </head>
 
 <body>
@@ -58,13 +57,15 @@
         <div class="command-area">
             <h3>Exécuter une commande</h3>
             <input type="text" id="command-input" placeholder="Commande à exécuter">
-            <button id="execute-command-button">Exécuter</button>
+            <button id="execute-command-button" onclick="executeCommand()">Exécuter</button>
             <div id="command-output" class="command-output"></div>
             <div class="command-buttons">
-                <button id="PowerOff-command-button">Power Off</button>
-                <button id="Cancel-Shutdown-button">Cancel Shutdown</button>
-                <button id="Freeze-command-button">Freeze</button>
-                <button id="Unfreeze-command-button">Unfreeze</button>
+                <button id="PowerOff-command-button" onclick="handlePowerOff()">Éteindre PC</button>
+                <button id="Cancel-Shutdown-button" onclick="handleCancelShutdown()">Annuler arrêt</button>
+                <button id="Freeze-command-button" onclick="handleFreeze()">Geler écran</button>
+                <button id="Unfreeze-command-button" onclick="handleUnfreeze()">Dégeler écran</button>
+                <button id="Generate-PDF-button" onclick="handleGeneratePDF()">Générer PDF</button>
+                <button id="Download-PDF-button" onclick="downloadLatestPDF()" style="display: none;">Télécharger PDF</button>
             </div>
         </div>
         
@@ -107,7 +108,9 @@
                 <label><input type="checkbox" id="filter-deleted" checked> Suppression</label>
                 <label><input type="checkbox" id="filter-moved" checked> Déplacement</label>
             </div>
-            <div class="logs-container" id="logs-container"></div>
+            <div class="logs-container" id="logs-container">
+                <p class="no-logs-message">Aucun journal d'activité disponible pour le moment. Les événements de fichiers et d'activité système apparaîtront ici.</p>
+            </div>
         </div>
         <div class="malware-scan-area">
             <h3>Détection de fichiers suspects</h3>
@@ -123,8 +126,5 @@
         </div>
         <button id="back-to-list-button">Retour à la liste des appareils</button>
     </div>
-
-    <script src="script.js"></script>
-    <link rel="stylesheet" href="style.css">
 </body>
 </html>

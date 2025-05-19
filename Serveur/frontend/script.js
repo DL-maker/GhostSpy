@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM Content Loaded - Initializing Application");
     const clientListDiv = document.getElementById('client-list');
     const devicePageDiv = document.getElementById('device-page');
     const backToListButton = document.getElementById('back-to-list-button');
@@ -13,7 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const disconnectedCountSpan = document.getElementById('disconnected-count');
     const apiInput = document.getElementById('api-input');
 
-    let currentClientId = null;
+    // Set up global client ID to be accessible from all functions
+    window.currentClientId = null;
     let screenshotPollingInterval;
     let resourcePollingInterval;
     let logsPollingInterval;
@@ -21,9 +23,294 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastProcessedLogTime = null;
     let lastCommandIdSent = null;
     
+    // Initialize global window functions for direct onclick access from HTML
+    window.executeCommand = function() {
+        const commandInputElem = document.getElementById('command-input');
+        const command = commandInputElem.value;
+        if (!command) {
+            return; // Ne rien faire si aucune commande n'est entrée
+        }
+        
+        if (!window.currentClientId) {
+            const commandOutput = document.getElementById('command-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">Action impossible</div>
+                <p>Sélectionnez un appareil dans la liste.</p>
+            `;
+            return;
+        }
+        
+        console.log("Exécution de la commande: " + command);
+        sendCommandWithButton(window.currentClientId, command, 'Manual');
+        commandInputElem.value = '';
+    };
+
+    window.handlePowerOff = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        
+        if (confirm("Voulez-vous vraiment éteindre cet appareil?")) {
+            const commandOutput = document.getElementById('command-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header">
+                    <div class="command-spinner"></div>
+                    Extinction de l'appareil...
+                </div>
+                <p>Veuillez patienter...</p>
+            `;
+            
+            fetch(`/client/${window.currentClientId}`, {
+                credentials: 'include'
+            })
+                .then(response => response.json())
+                .then(clientData => {
+                    const osType = clientData.os_type;
+                    
+                    let powerOffCommand;
+                    switch (osType) {
+                        case "Windows":
+                            powerOffCommand = "shutdown /s /t 30 /c \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler avec 'shutdown /a'\"";
+                            break;
+                        case "Linux":
+                            powerOffCommand = "sudo shutdown -h +0.5 \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler\"";
+                            break;
+                        case "Darwin": // macOS
+                            powerOffCommand = "sudo shutdown -h +0.5";
+                            break;
+                        default:
+                            powerOffCommand = "shutdown /s /t 30";
+                    }
+                    
+                    sendCommandWithButton(window.currentClientId, powerOffCommand, "PowerOff");
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des données client:", error);
+                    commandOutput.innerHTML = `
+                        <div class="command-header" style="color: #fb7185">
+                            Erreur lors de la récupération des données client
+                        </div>
+                        <p>${error.message || 'Une erreur est survenue'}</p>
+                    `;
+                });
+        }
+    };
+
+    window.handleCancelShutdown = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        
+        const commandOutput = document.getElementById('command-output');
+        commandOutput.style.display = 'block';
+        commandOutput.innerHTML = `
+            <div class="command-header">
+                <div class="command-spinner"></div>
+                Annulation de l'extinction...
+            </div>
+            <p>Veuillez patienter...</p>
+        `;
+        
+        fetch(`/client/${window.currentClientId}`, {
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(clientData => {
+                const osType = clientData.os_type;
+                let cancelCommand;
+                
+                switch (osType) {
+                    case "Windows":
+                        cancelCommand = "shutdown /a";
+                        break;
+                    case "Linux":
+                        cancelCommand = "sudo shutdown -c \"Arrêt système annulé\"";
+                        break;
+                    case "Darwin": // macOS
+                        cancelCommand = "sudo killall shutdown";
+                        break;
+                    default:
+                        cancelCommand = "shutdown /a";
+                }
+                
+                sendCommandWithButton(window.currentClientId, cancelCommand, "CancelShutdown");
+            })
+            .catch(error => {
+                console.error("Erreur lors de la récupération des données client:", error);
+                commandOutput.innerHTML = `
+                    <div class="command-header" style="color: #fb7185">
+                        Erreur lors de la récupération des données client
+                    </div>
+                    <p>${error.message || 'Une erreur est survenue'}</p>
+                `;
+            });
+    };
+
+    window.handleFreeze = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        sendCommandWithButton(window.currentClientId, "freeze", "Freeze");
+    };
+
+    window.handleUnfreeze = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        sendCommandWithButton(window.currentClientId, "unfreeze", "Unfreeze");
+    };
+
+    window.handleGeneratePDF = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        
+        // Hide download button while generating
+        const downloadButton = document.getElementById('Download-PDF-button');
+        downloadButton.style.display = 'none';
+        
+        const commandOutput = document.getElementById('command-output');
+        commandOutput.style.display = 'block';
+        commandOutput.innerHTML = `
+            <div class="command-header">
+                <div class="command-spinner"></div>
+                Génération du rapport PDF...
+            </div>
+            <p>Veuillez patienter, cette opération peut prendre plusieurs minutes.</p>
+        `;
+        
+        fetch(`/client/${window.currentClientId}/generate_pdf`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Commencer à vérifier l'état du PDF
+            commandOutput.innerHTML = `
+                <div class="command-header">
+                    <div class="command-spinner"></div>
+                    Génération du rapport PDF en cours...
+                </div>
+                <p>Le client est en train de générer le rapport, veuillez patienter...</p>
+            `;
+            
+            // Attendre un moment avant de commencer à vérifier
+            setTimeout(() => {
+                checkPDFGenerationStatus(window.currentClientId);
+            }, 3000);
+        })
+        .catch(error => {
+            console.error("Erreur lors de la demande de génération PDF:", error);
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">
+                    Erreur de communication
+                </div>
+                <p>${error.message || 'Une erreur est survenue lors de la demande de génération'}</p>
+                <button id="retry-pdf-button" class="retry-button">Réessayer</button>
+            `;
+            
+            document.getElementById('retry-pdf-button').addEventListener('click', function() {
+                handleGeneratePDF();
+            });
+        });
+    };
+
+    // Nouvelle fonction pour télécharger directement le PDF
+    window.downloadLatestPDF = function() {
+        if (!window.currentClientId) {
+            alert("Veuillez d'abord sélectionner un appareil");
+            return;
+        }
+        
+        // On tente de récupérer les chemins PDF possibles
+        fetch(`/client/${window.currentClientId}/check_pdf_exists`, {
+            credentials: 'include',
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                // Si le PDF existe, on l'ouvre dans un nouvel onglet
+                const downloadUrl = `/client/${window.currentClientId}/download_pdf?t=${new Date().getTime()}`;
+                window.open(downloadUrl, '_blank');
+                
+                const commandOutput = document.getElementById('command-output');
+                commandOutput.innerHTML = `
+                    <div class="command-header" style="color: #10b981">Téléchargement lancé</div>
+                    <p>Le rapport PDF est en cours de téléchargement. Vérifiez vos téléchargements.</p>
+                `;
+            } else {
+                // Si le PDF n'existe pas selon l'API, on tente quand même le téléchargement direct
+                const downloadUrl = `/client/${window.currentClientId}/download_pdf?t=${new Date().getTime()}`;
+                
+                fetch(downloadUrl, {
+                    method: 'HEAD',
+                    credentials: 'include'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.open(downloadUrl, '_blank');
+                        
+                        const commandOutput = document.getElementById('command-output');
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #10b981">Téléchargement lancé</div>
+                            <p>Le rapport PDF est en cours de téléchargement. Vérifiez vos téléchargements.</p>
+                        `;
+                    } else {
+                        // Le PDF n'existe vraiment pas
+                        const commandOutput = document.getElementById('command-output');
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #fb7185">PDF non disponible</div>
+                            <p>Le fichier PDF n'est pas disponible. Veuillez réessayer de le générer.</p>
+                            <button id="retry-pdf-button" class="retry-button">Générer à nouveau</button>
+                        `;
+                        
+                        document.getElementById('retry-pdf-button').addEventListener('click', function() {
+                            handleGeneratePDF();
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la vérification du téléchargement:", error);
+                    // On tente quand même d'ouvrir le PDF
+                    window.open(downloadUrl, '_blank');
+                });
+            }
+        })
+        .catch(error => {
+            console.error("Erreur lors de la vérification de l'existence du PDF:", error);
+            // En cas d'erreur, on tente quand même le téléchargement direct
+            const downloadUrl = `/client/${window.currentClientId}/download_pdf?t=${new Date().getTime()}`;
+            window.open(downloadUrl, '_blank');
+        });
+    };
+
+    // Expose the currentClientId to global scope so HTML onclick handlers can access it
+    window.getCurrentClientId = function() {
+        return window.currentClientId;
+    };
 
     function fetchClients() {
-        fetch('/clients')
+        fetch('/clients', {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(clients => {
                 clientListDiv.innerHTML = '';
@@ -55,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.showDevicePage = function(clientId, clientName) {
-        currentClientId = clientId;
+        window.currentClientId = clientId;
         deviceNameHeader.textContent = clientName;
         devicePageDiv.style.display = 'block';
         clientListDiv.style.display = 'none';
@@ -77,7 +364,9 @@ document.addEventListener('DOMContentLoaded', function() {
         enableCommandButtons();
 
         // Fetch and apply client settings
-        fetch(`/client/${clientId}/settings/admin`)
+        fetch(`/client/${clientId}/settings/admin`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(settings => {
                 applyFeatureVisibility(settings);
@@ -92,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const commandButtons = document.querySelectorAll('.command-buttons button');
         const executeCommandButton = document.getElementById('execute-command-button');
         
-        if (currentClientId) {
+        if (window.currentClientId) {
             commandButtons.forEach(button => {
                 button.disabled = false;
             });
@@ -108,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.disconnectClient = function(clientId) {
         fetch(`/client/${clientId}/disconnect`, {
             method: 'POST',
+            credentials: 'include'
         })
         .then(response => response.json())
         .then(data => {
@@ -148,22 +438,40 @@ document.addEventListener('DOMContentLoaded', function() {
         return Date.now().toString() + Math.floor(Math.random() * 10000).toString();
     }
 
-    // Fonction pour envoyer une commande en identifiant le bouton utilisé
+    // Fonction améliorée pour envoyer une commande avec un bouton
     function sendCommandWithButton(clientId, command, buttonType) {
         if (!clientId) {
+            // Afficher un message d'erreur dans la console et dans l'UI
+            console.error("ID client non défini");
+            const commandOutput = document.getElementById('command-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header" style="color: #fb7185">Erreur d'exécution</div>
+                <p>Aucun client sélectionné. Veuillez choisir un appareil dans la liste.</p>
+            `;
             return false;
         }
         
+        // Afficher l'interface de traitement
         const commandOutput = document.getElementById('command-output');
         commandOutput.style.display = 'block';
+        
+        // Générer un nouvel ID unique pour cette commande
         const commandId = generateCommandId();
         lastCommandIdSent = commandId;
         
+        // Mettre à jour l'interface pour montrer que la commande est en cours d'exécution
         commandOutput.innerHTML = `
-            <div class="command-header"><div class="command-spinner"></div><span>Exécution de la commande: <span style="color: #38bdf8; margin-left: 5px;">${command}</span></span></div>
+            <div class="command-header">
+                <div class="command-spinner"></div>
+                <span>Exécution de la commande: <span style="color: #38bdf8; margin-left: 5px;">${command}</span></span>
+            </div>
             <p>Veuillez patienter...</p>
         `;
 
+        // Envoyer la commande au serveur
+        console.log(`Envoi de la commande "${command}" (ID: ${commandId}, Type: ${buttonType}) au client ${clientId}`);
+        
         fetch(`/client/${clientId}/command`, {
             method: 'POST',
             headers: {
@@ -173,7 +481,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 command: command, 
                 command_id: commandId,
                 button_type: buttonType 
-            })
+            }),
+            credentials: 'include' // Important pour inclure les cookies
         })
         .then(response => {
             if (!response.ok) {
@@ -182,6 +491,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
+            console.log("Commande envoyée avec succès:", data);
+            // Vérifier le résultat après un court délai
             setTimeout(() => {
                 checkCommandResult(clientId);
             }, 2000);
@@ -208,7 +519,9 @@ document.addEventListener('DOMContentLoaded', function() {
             url += `?button_type=${buttonType}`;
         }
         
-        return fetch(url)
+        return fetch(url, {
+            credentials: 'include'
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Erreur réseau: ${response.status}`);
@@ -217,271 +530,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Modifions les listeners des boutons pour utiliser la nouvelle fonction
-    executeCommandButton.addEventListener('click', function() {
-        const command = commandInput.value;
-        if (!command) {
-            return; // Ne rien faire si aucune commande n'est entrée
-        }
-        
-        if (!currentClientId) {
-            // Au lieu d'afficher une alerte, mettre à jour directement le résultat pour indiquer qu'il faut sélectionner un appareil
-            const commandOutput = document.getElementById('command-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header" style="color: #fb7185">Action impossible</div>
-                <p>Sélectionnez un appareil dans la liste.</p>
-            `;
-            return;
-        }
-        
-        sendCommandWithButton(currentClientId, command, 'Manual');
-        commandInput.value = '';
-    });
-
-    // Fonction pour créer un dialogue personnalisé (remplace alert et confirm)
-    function showCustomDialog(message, onConfirm = null, onCancel = null, isConfirm = false) {
-        // Créer l'élément de dialogue
-        const dialogEl = document.createElement('div');
-        dialogEl.className = 'custom-dialog';
-        
-        // Contenu du dialogue
-        let dialogContent = `
-            <div class="dialog-content">
-                <div class="dialog-message">${message}</div>
-                <div class="dialog-buttons">
-        `;
-        
-        // Ajouter les boutons selon le type (confirm ou alert)
-        if (isConfirm) {
-            dialogContent += `
-                    <button class="dialog-button dialog-button-confirm" id="dialog-confirm-btn">Confirmer</button>
-                    <button class="dialog-button dialog-button-cancel" id="dialog-cancel-btn">Annuler</button>
-            `;
-        } else {
-            dialogContent += `
-                    <button class="dialog-button dialog-button-confirm" id="dialog-ok-btn">OK</button>
-            `;
-        }
-        
-        dialogContent += `
-                </div>
-            </div>
-        `;
-        
-        dialogEl.innerHTML = dialogContent;
-        document.body.appendChild(dialogEl);
-        
-        // Ajouter les gestionnaires d'événements
-        if (isConfirm) {
-            const confirmBtn = document.getElementById('dialog-confirm-btn');
-            const cancelBtn = document.getElementById('dialog-cancel-btn');
-            
-            confirmBtn.addEventListener('click', function() {
-                if (onConfirm) onConfirm();
-                document.body.removeChild(dialogEl);
-            });
-            
-            cancelBtn.addEventListener('click', function() {
-                if (onCancel) onCancel();
-                document.body.removeChild(dialogEl);
-            });
-        } else {
-            const okBtn = document.getElementById('dialog-ok-btn');
-            
-            okBtn.addEventListener('click', function() {
-                if (onConfirm) onConfirm();
-                document.body.removeChild(dialogEl);
-            });
-        }
-    }
-    
-    // Power Off button functionality
-    PowerOffCommandButton.addEventListener('click', function() {
-        if (!currentClientId) {
-            return; // Ne rien faire si aucun client n'est sélectionné
-        }
-        
-        showCustomDialog("Voulez-vous vraiment éteindre cet appareil?", function() {
-            // Code à exécuter si l'utilisateur confirme
-            const commandOutput = document.getElementById('command-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header">
-                    <div class="command-spinner"></div>
-                    Extinction de l'appareil...
-                </div>
-                <p>Veuillez patienter...</p>
-            `;
-            
-            // Get OS type from the server
-            fetch(`/client/${currentClientId}`)
-                .then(response => response.json())
-                .then(clientData => {
-                    const osType = clientData.os_type;
-                    
-                    let powerOffCommand;
-                    switch (osType) {
-                        case "Windows":
-                            powerOffCommand = "shutdown /s /t 30 /c \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler avec 'shutdown /a'\"";
-                            break;
-                        case "Linux":
-                            powerOffCommand = "sudo shutdown -h +0.5 \"Arrêt à distance demandé par Ghost Spy - Vous avez 30 secondes pour annuler\"";
-                            break;
-                        case "Darwin": // macOS
-                            powerOffCommand = "sudo shutdown -h +0.5";
-                            break;
-                        default:
-                            powerOffCommand = "shutdown /s /t 30";
-                    }
-                    
-                    sendCommandWithButton(currentClientId, powerOffCommand, "PowerOff");
-                })
-                .catch(error => {
-                    console.error("Erreur lors de la récupération des données client:", error);
-                    commandOutput.innerHTML = `
-                        <div class="command-header" style="color: #fb7185">
-                            Erreur lors de la récupération des données client
-                        </div>
-                        <p>${error.message || 'Une erreur est survenue'}</p>
-                    `;
-                });
-        }, null, true);
-    });
-    
-    // Cancel Shutdown button
-    const cancelShutdownButton = document.getElementById('Cancel-Shutdown-button');
-    if (cancelShutdownButton) {
-        cancelShutdownButton.addEventListener('click', function() {
-            if (!currentClientId) {
-                return; // Ne rien faire si aucun client n'est sélectionné
-            }
-            
-            const commandOutput = document.getElementById('command-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header">
-                    <div class="command-spinner"></div>
-                    Annulation de l'extinction...
-                </div>
-                <p>Veuillez patienter...</p>
-            `;
-            
-            // Get OS type from the server
-            fetch(`/client/${currentClientId}`)
-                .then(response => response.json())
-                .then(clientData => {
-                    const osType = clientData.os_type;
-                    let cancelCommand;
-                    
-                    switch (osType) {
-                        case "Windows":
-                            cancelCommand = "shutdown /a";
-                            break;
-                        case "Linux":
-                            cancelCommand = "sudo shutdown -c \"Arrêt système annulé\"";
-                            break;
-                        case "Darwin": // macOS
-                            cancelCommand = "sudo killall shutdown";
-                            break;
-                        default:
-                            cancelCommand = "shutdown /a";
-                    }
-                    
-                    sendCommandWithButton(currentClientId, cancelCommand, "CancelShutdown");
-                })
-                .catch(error => {
-                    console.error("Erreur lors de la récupération des données client:", error);
-                    commandOutput.innerHTML = `
-                        <div class="command-header" style="color: #fb7185">
-                            Erreur lors de la récupération des données client
-                        </div>
-                        <p>${error.message || 'Une erreur est survenue'}</p>
-                    `;
-                });
-        });
-    }
-
-    // Add event listener for Freeze button
-    const freezeButton = document.getElementById('Freeze-command-button');
-    if (freezeButton) {
-        freezeButton.addEventListener('click', function() {
-            if (!currentClientId) {
-                return; // Ne rien faire si aucun client n'est sélectionné
-            }
-            
-            sendCommandWithButton(currentClientId, "freeze", "Freeze");
-        });
-    }
-
-    // Add event listener for Unfreeze button
-    const unfreezeButton = document.getElementById('Unfreeze-command-button');
-    if (unfreezeButton) {
-        unfreezeButton.addEventListener('click', function() {
-            if (!currentClientId) {
-                return; // Ne rien faire si aucun client n'est sélectionné
-            }
-            
-            sendCommandWithButton(currentClientId, "unfreeze", "Unfreeze");
-        });
-    }
-
-    executeAPIbutton.addEventListener('click', function() {
-        const token = apiInput.value;
-        if (!token) {
-            return; // Ne rien faire si aucun token n'est entré
-        }
-        
-        if (!currentClientId) {
-            // Au lieu d'afficher une alerte, mettre à jour directement le résultat pour indiquer qu'il faut sélectionner un appareil
-            const commandOutput = document.getElementById('api-output');
-            commandOutput.style.display = 'block';
-            commandOutput.innerHTML = `
-                <div class="command-header" style="color: #fb7185">
-                    Action impossible
-                </div>
-                <p>Sélectionnez un appareil dans la liste.</p>
-            `;
-            return;
-        }
-        
-        const commandOutput = document.getElementById('api-output');
-        commandOutput.style.display = 'block';
-        commandOutput.innerHTML = `
-            <div class="command-header">
-                <div class="command-spinner"></div>
-                Exécution de la commande: <span style="color: #38bdf8">${token}</span>
-            </div>
-            <p>Veuillez patienter...</p>
-        `;
-        
-        fetch(`/client/${currentClientId}/token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token: token })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("OK")
-            setTimeout(() => {
-                commandOutput.innerHTML ='<p>Api mis a jour</p>'
-            }, 2000);
-            commandInput.value = '';
-        })
-        .catch(error =>{ console.log("Error")
-            commandOutput.innerHTML = `
-                <div class="command-header" style="color: #fb7185">
-                    Erreur lors de l'envoi de la commande
-                </div>
-                <p>${error.message || 'Une erreur est survenue'}</p>
-            `;
-        });
-    });
-
     function checkCommandResult(clientId) {
-        fetch(`/client/${clientId}/commandresult`)
+        fetch(`/client/${clientId}/commandresult`, {
+            credentials: 'include'
+        })
         .then(response => response.json())
         .then(data => {
             const commandOutput = document.getElementById('command-output');
@@ -546,7 +598,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchResourceInfo(clientId) {
-        fetch(`/client/${clientId}/resources`)
+        fetch(`/client/${clientId}/resources`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.resources) {
@@ -613,97 +667,106 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchLogs(clientId) {
-        fetch(`/client/${clientId}/logs`)
-        .then(response => response.json())
+        fetch(`/client/${clientId}/logs`, {
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erreur lors de la récupération des logs: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.logs && data.logs.length > 0) {
                 displayLogs(data.logs);
             }
         })
-        .catch(error => console.error('Erreur lors de la récupération des logs:', error));
+        .catch(error => {
+            console.error('Erreur lors de la récupération des logs:', error);
+            const logsContainer = document.getElementById('logs-container');
+            logsContainer.innerHTML = `<p class="error-message">Erreur lors de la récupération des logs: ${error.message}</p>`;
+        });
     }
 
     function displayLogs(logs) {
         const logsContainer = document.getElementById('logs-container');
-        logs.sort((a, b) => a.time.localeCompare(b.time));
+        
+        // Trier les logs par timestamp
+        logs.sort((a, b) => {
+            const timeA = a.timestamp || a.time || '';
+            const timeB = b.timestamp || b.time || '';
+            return timeA.localeCompare(timeB);
+        });
+        
         if (!lastProcessedLogTime) {
             logsContainer.innerHTML = "";
         }
-        const newLogs = logs.filter(log => !lastProcessedLogTime || log.time > lastProcessedLogTime);
+        
+        // Filtrer les nouveaux logs
+        const newLogs = logs.filter(log => {
+            const logTime = log.timestamp || log.time || '';
+            return !lastProcessedLogTime || logTime > lastProcessedLogTime;
+        });
+        
         if (newLogs.length > 0) {
-            lastProcessedLogTime = logs[logs.length - 1].time;
+            // Mettre à jour le dernier timestamp traité
+            const lastLog = logs[logs.length - 1];
+            lastProcessedLogTime = lastLog.timestamp || lastLog.time || '';
+            
+            // Créer des éléments pour chaque log
             newLogs.forEach(log => {
-                const logElement = createLogElement(log);
-                logsContainer.appendChild(logElement);
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                
+                // Déterminer le type de log (si disponible)
+                if (log.message) {
+                    // Format des logs système
+                    logEntry.innerHTML = `
+                        <span class="log-time">[${log.timestamp || ''}]</span>
+                        <span class="log-level">${log.level || 'INFO'}</span>
+                        <span class="log-message">${escapeHtml(log.message)}</span>
+                    `;
+                } else if (log.type) {
+                    // Format des logs de surveillance de fichiers
+                    const elementTypeClass = log.element_type ? `log-entry-${log.element_type}` : '';
+                    logEntry.className = `log-entry ${elementTypeClass}`;
+                    logEntry.setAttribute('data-element-type', log.element_type || '');
+                    logEntry.setAttribute('data-log-type', log.type || '');
+                    
+                    let logContent = `
+                        <span class="log-time">[${log.time || ''}]</span>
+                        <span class="log-type">${log.type || ''}</span>
+                        <span class="log-name">${escapeHtml(log.name || '')}</span>
+                    `;
+                    
+                    if (log.path) {
+                        logContent += `<div class="log-path">${escapeHtml(log.path)}</div>`;
+                    }
+                    
+                    if (log.warning) {
+                        logContent += `<div class="log-warning">${escapeHtml(log.warning)}</div>`;
+                        logEntry.classList.add('log-entry-warning');
+                    }
+                    
+                    if (log.dest_path) {
+                        logContent += `<div class="log-path">→ ${escapeHtml(log.dest_path)}</div>`;
+                    }
+                    
+                    logEntry.innerHTML = logContent;
+                }
+                
+                logsContainer.appendChild(logEntry);
             });
+            
+            // Faire défiler vers le bas pour voir les logs les plus récents
             logsContainer.scrollTop = logsContainer.scrollHeight;
         }
     }
 
-    function createLogElement(log) {
-        const logEntry = document.createElement('div');
-        const elementClass = `log-entry log-entry-${log.element_type}`;
-        logEntry.className = log.warning ? elementClass + ' log-entry-warning' : elementClass;
-        logEntry.setAttribute('data-element-type', log.element_type);
-        logEntry.setAttribute('data-log-type', log.type);
-
-        let logContent = `
-            <span class="log-time">[${log.time}]</span>
-            <span class="log-type log-type-${getLogTypeClass(log.type)}">${log.type}</span>
-            <span class="log-name">${escapeHtml(log.name)}</span>
-            <div class="log-path">${escapeHtml(log.path)}</div>
-        `;
-        if (log.warning) {
-            logContent += `<div class="log-warning">${escapeHtml(log.warning)}</div>`;
-        }
-        if (log.dest_path) {
-            logContent += `<div class="log-path">→ ${escapeHtml(log.dest_path)}</div>`;
-        }
-        logEntry.innerHTML = logContent;
-        return logEntry;
-    }
-
-    function getLogTypeClass(type) {
-        return type.toLowerCase()
-            .replace('é', 'e')
-            .replace('è', 'e')
-            .replace('ê', 'e')
-            .replace('à', 'a')
-            .replace('ç', 'c');
-    }
-
-    const filterCheckboxes = document.querySelectorAll('.logs-filter input[type="checkbox"]');
-    filterCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', applyLogFilters);
-    });
-
-    function applyLogFilters() {
-        const logEntries = document.querySelectorAll('.log-entry');
-        const showFile = document.getElementById('filter-file').checked;
-        const showFolder = document.getElementById('filter-folder').checked;
-        const showExe = document.getElementById('filter-exe').checked;
-        const showCreated = document.getElementById('filter-created').checked;
-        const showModified = document.getElementById('filter-modified').checked;
-        const showDeleted = document.getElementById('filter-deleted').checked;
-        const showMoved = document.getElementById('filter-moved').checked;
-
-        logEntries.forEach(entry => {
-            const elementType = entry.getAttribute('data-element-type');
-            const logType = entry.getAttribute('data-log-type');
-            let showEntry = true;
-            if (elementType === 'file' && !showFile) showEntry = false;
-            if (elementType === 'folder' && !showFolder) showEntry = false;
-            if (elementType === 'exe' && !showExe) showEntry = false;
-            if (logType === 'Création' && !showCreated) showEntry = false;
-            if (logType === 'Modification' && !showModified) showEntry = false;
-            if (logType === 'Suppression' && !showDeleted) showEntry = false;
-            if (logType === 'Déplacement' && !showMoved) showEntry = false;
-            entry.style.display = showEntry ? 'block' : 'none';
-        });
-    }
-
     function fetchScanResults(clientId) {
-        fetch(`/client/${clientId}/scan_file`)
+        fetch(`/client/${clientId}/scan_file`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 const container = document.getElementById('scan-results-container');
@@ -792,7 +855,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
     
     function loadScanResults(clientId) {
-        fetch(`/client/${clientId}/scan_results`)
+        fetch(`/client/${clientId}/scan_results`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 const scanResultsContainer = document.getElementById('scan-results-container');
@@ -965,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Ajouter un événement pour mettre à jour l'historique quand on sélectionne un appareil
     window.showDevicePage = function(clientId, clientName) {
-        currentClientId = clientId;
+        window.currentClientId = clientId;
         deviceNameHeader.textContent = clientName;
         devicePageDiv.style.display = 'block';
         clientListDiv.style.display = 'none';
@@ -987,7 +1052,9 @@ document.addEventListener('DOMContentLoaded', function() {
         enableCommandButtons();
 
         // Fetch and apply client settings
-        fetch(`/client/${clientId}/settings/admin`)
+        fetch(`/client/${clientId}/settings/admin`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(settings => {
                 applyFeatureVisibility(settings);
@@ -1010,11 +1077,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const filter = this.getAttribute('data-filter');
                 
                 // Charger l'historique filtré
-                if (currentClientId) {
+                if (window.currentClientId) {
                     if (filter === 'all') {
-                        loadCommandHistory(currentClientId);
+                        loadCommandHistory(window.currentClientId);
                     } else {
-                        loadCommandHistory(currentClientId, filter);
+                        loadCommandHistory(window.currentClientId, filter);
                     }
                 }
             });
@@ -1022,18 +1089,237 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Recharger l'historique périodiquement
         setInterval(() => {
-            if (currentClientId && devicePageDiv.style.display !== 'none') {
+            if (window.currentClientId && devicePageDiv.style.display !== 'none') {
                 const activeFilterBtn = document.querySelector('.history-filter-btn.active');
                 const filter = activeFilterBtn ? activeFilterBtn.getAttribute('data-filter') : 'all';
                 
                 if (filter === 'all') {
-                    loadCommandHistory(currentClientId);
+                    loadCommandHistory(window.currentClientId);
                 } else {
-                    loadCommandHistory(currentClientId, filter);
+                    loadCommandHistory(window.currentClientId, filter);
                 }
             }
         }, 10000); // Mise à jour toutes les 10 secondes
     });
+
+    // Ajout du bouton pour générer un rapport PDF
+    const generatePDFButton = document.getElementById('Generate-PDF-button');
+    if (generatePDFButton) {
+        generatePDFButton.addEventListener('click', function() {
+            if (!window.currentClientId) {
+                return; // Ne rien faire si aucun client n'est sélectionné
+            }
+            
+            const commandOutput = document.getElementById('command-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `
+                <div class="command-header">
+                    <div class="command-spinner"></div>
+                    Génération du rapport PDF...
+                </div>
+                <p>Cette opération peut prendre quelques instants. Veuillez patienter...</p>
+            `;
+            
+            // Envoyer la demande de génération de PDF
+            fetch(`/client/${window.currentClientId}/generate_pdf`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur réseau: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Vérifier périodiquement si le PDF est prêt à être téléchargé
+                checkPDFGenerationStatus(window.currentClientId);
+            })
+            .catch(error => {
+                console.error("Erreur lors de la demande de génération PDF:", error);
+                commandOutput.innerHTML = `
+                    <div class="command-header" style="color: #fb7185">
+                        Erreur lors de la demande de génération PDF
+                    </div>
+                    <p>${error.message || 'Une erreur est survenue'}</p>
+                `;
+            });
+        });
+    }
+
+    // Fonction pour vérifier si le PDF est prêt
+    function checkPDFGenerationStatus(clientId) {
+        const commandOutput = document.getElementById('command-output');
+        const downloadButton = document.getElementById('Download-PDF-button');
+        let attempts = 0;
+        const maxAttempts = 15; // 15 tentatives maximum (environ 45 secondes)
+        
+        const checkStatus = () => {
+            attempts++;
+            
+            // Vérifier d'abord si le fichier existe
+            fetch(`/client/${clientId}/check_pdf_exists`, {
+                credentials: 'include',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    // Le PDF est prêt à être téléchargé
+                    commandOutput.innerHTML = `
+                        <div class="command-header" style="color: #10b981">PDF généré avec succès</div>
+                        <p>Le rapport PDF a été généré et est prêt à être téléchargé.</p>
+                    `;
+                    
+                    // Afficher le bouton de téléchargement
+                    downloadButton.style.display = 'inline-block';
+                    return;
+                }
+                
+                // Si le fichier n'existe pas encore, on fait une requête HEAD pour vérifier
+                fetch(`/client/${clientId}/download_pdf`, {
+                    method: 'HEAD',
+                    credentials: 'include',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Le PDF est prêt à être téléchargé
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #10b981">PDF généré avec succès</div>
+                            <p>Le rapport PDF a été généré et est prêt à être téléchargé.</p>
+                        `;
+                        
+                        // Afficher le bouton de téléchargement
+                        downloadButton.style.display = 'inline-block';
+                        
+                    } else if (response.status === 404) {
+                        // Le PDF n'est pas encore prêt
+                        if (attempts < maxAttempts) {
+                            commandOutput.innerHTML = `
+                                <div class="command-header">
+                                    <div class="command-spinner"></div>
+                                    Génération du rapport PDF en cours...
+                                </div>
+                                <p>Progression: ${Math.round((attempts / maxAttempts) * 100)}%</p>
+                            `;
+                            setTimeout(checkStatus, 3000);
+                        } else {
+                            // Après le nombre maximum de tentatives, on vérifie une dernière fois
+                            // et on propose quand même un bouton pour tenter le téléchargement
+                            commandOutput.innerHTML = `
+                                <div class="command-header" style="color: #3b82f6">Traitement terminé</div>
+                                <p>Le PDF a peut-être été généré malgré l'erreur. Vous pouvez tenter de le télécharger.</p>
+                                <button id="try-download-button" class="download-button">Tenter le téléchargement</button>
+                            `;
+                            
+                            document.getElementById('try-download-button').addEventListener('click', function() {
+                                downloadLatestPDF();
+                            });
+                            
+                            // Afficher aussi le bouton standard
+                            downloadButton.style.display = 'inline-block';
+                        }
+                    } else {
+                        // Une autre erreur s'est produite mais on continue
+                        if (attempts < maxAttempts) {
+                            commandOutput.innerHTML = `
+                                <div class="command-header">
+                                    <div class="command-spinner"></div>
+                                    Traitement du PDF en cours...
+                                </div>
+                                <p>Le serveur traite votre demande, veuillez patienter...</p>
+                            `;
+                            setTimeout(checkStatus, 3000);
+                        } else {
+                            // Même après des erreurs, on tente quand même d'afficher le bouton de téléchargement
+                            commandOutput.innerHTML = `
+                                <div class="command-header" style="color: #3b82f6">Traitement terminé</div>
+                                <p>Le PDF a peut-être été généré malgré les erreurs. Vous pouvez tenter de le télécharger.</p>
+                                <button id="try-download-button" class="download-button">Tenter le téléchargement</button>
+                            `;
+                            
+                            document.getElementById('try-download-button').addEventListener('click', function() {
+                                downloadLatestPDF();
+                            });
+                            
+                            // Afficher aussi le bouton standard
+                            downloadButton.style.display = 'inline-block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la vérification du PDF:", error);
+                    
+                    if (attempts < maxAttempts) {
+                        // En cas d'erreur, on continue d'essayer
+                        setTimeout(checkStatus, 3000);
+                    } else {
+                        // Après toutes les tentatives, on donne une option pour télécharger quand même
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #3b82f6">Traitement terminé</div>
+                            <p>Le PDF a peut-être été généré malgré les erreurs. Vous pouvez tenter de le télécharger.</p>
+                            <button id="try-download-button" class="download-button">Tenter le téléchargement</button>
+                        `;
+                        
+                        document.getElementById('try-download-button').addEventListener('click', function() {
+                            downloadLatestPDF();
+                        });
+                        
+                        // Afficher aussi le bouton standard
+                        downloadButton.style.display = 'inline-block';
+                    }
+                });
+            })
+            .catch(error => {
+                // Erreur lors de la vérification, on continue avec la méthode HEAD
+                fetch(`/client/${clientId}/download_pdf`, {
+                    method: 'HEAD',
+                    credentials: 'include'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        downloadButton.style.display = 'inline-block';
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #10b981">PDF généré avec succès</div>
+                            <p>Le rapport PDF a été généré et est prêt à être téléchargé.</p>
+                        `;
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(checkStatus, 3000);
+                    } else {
+                        // Afficher quand même le bouton après le nombre maximum de tentatives
+                        downloadButton.style.display = 'inline-block';
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #3b82f6">Traitement terminé</div>
+                            <p>Le PDF a peut-être été généré malgré les erreurs. Vous pouvez tenter de le télécharger.</p>
+                        `;
+                    }
+                })
+                .catch(() => {
+                    if (attempts < maxAttempts) {
+                        setTimeout(checkStatus, 3000);
+                    } else {
+                        // Afficher quand même le bouton après le nombre maximum de tentatives
+                        downloadButton.style.display = 'inline-block';
+                        commandOutput.innerHTML = `
+                            <div class="command-header" style="color: #3b82f6">Traitement terminé</div>
+                            <p>Le PDF a peut-être été généré malgré les erreurs. Vous pouvez tenter de le télécharger.</p>
+                        `;
+                    }
+                });
+            });
+        };
+        
+        // Commencer à vérifier
+        checkStatus();
+    }
 });
 
 function openClientSettings(clientId) {
@@ -1160,4 +1446,166 @@ document.addEventListener('DOMContentLoaded', function() {
     if (savedClientId && savedClientName) {
         showDevicePage(savedClientId, savedClientName);
     }
+});
+
+// Fonction pour réinitialiser la base de données
+function resetDatabase() {
+    showCustomDialog(
+        "Êtes-vous sûr de vouloir réinitialiser la base de données? Cette action est irréversible et supprimera toutes les données.",
+        () => {
+            // L'utilisateur a confirmé, procéder à la réinitialisation
+            fetch('/reset_database', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                // Recharger la page après réinitialisation
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la réinitialisation: ' + error);
+            });
+        },
+        null,
+        true
+    );
+}
+
+// Ajouter un event listener au bouton de reset DB
+document.addEventListener('DOMContentLoaded', function() {
+    const resetBtn = document.getElementById('resetDB');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetDatabase);
+    }
+});
+
+const filterCheckboxes = document.querySelectorAll('.logs-filter input[type="checkbox"]');
+filterCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', applyLogFilters);
+});
+
+function getLogTypeClass(type) {
+    return type.toLowerCase()
+        .replace('é', 'e')
+        .replace('è', 'e')
+        .replace('ê', 'e')
+        .replace('à', 'a')
+        .replace('ç', 'c');
+}
+
+function applyLogFilters() {
+    const logEntries = document.querySelectorAll('.log-entry');
+    const showFile = document.getElementById('filter-file').checked;
+    const showFolder = document.getElementById('filter-folder').checked;
+    const showExe = document.getElementById('filter-exe').checked;
+    const showCreated = document.getElementById('filter-created').checked;
+    const showModified = document.getElementById('filter-modified').checked;
+    const showDeleted = document.getElementById('filter-deleted').checked;
+    const showMoved = document.getElementById('filter-moved').checked;
+
+    logEntries.forEach(entry => {
+        const elementType = entry.getAttribute('data-element-type');
+        const logType = entry.getAttribute('data-log-type');
+        let showEntry = true;
+        if (elementType === 'file' && !showFile) showEntry = false;
+        if (elementType === 'folder' && !showFolder) showEntry = false;
+        if (elementType === 'exe' && !showExe) showEntry = false;
+        if (logType === 'Création' && !showCreated) showEntry = false;
+        if (logType === 'Modification' && !showModified) showEntry = false;
+        if (logType === 'Suppression' && !showDeleted) showEntry = false;
+        if (logType === 'Déplacement' && !showMoved) showEntry = false;
+        entry.style.display = showEntry ? 'block' : 'none';
+    });
+}
+
+// Re-ajouter la fonction de dialogue personnalisé qui a été supprimée
+function showCustomDialog(message, onConfirm = null, onCancel = null, isConfirm = false) {
+    // Créer l'élément de dialogue
+    const dialogEl = document.createElement('div');
+    dialogEl.className = 'custom-dialog';
+    
+    // Contenu du dialogue
+    let dialogContent = `
+        <div class="dialog-content">
+            <div class="dialog-message">${message}</div>
+            <div class="dialog-buttons">
+    `;
+    
+    // Ajouter les boutons selon le type (confirm ou alert)
+    if (isConfirm) {
+        dialogContent += `
+                <button class="dialog-button dialog-button-confirm" id="dialog-confirm-btn">Confirmer</button>
+                <button class="dialog-button dialog-button-cancel" id="dialog-cancel-btn">Annuler</button>
+        `;
+    } else {
+        dialogContent += `
+                <button class="dialog-button dialog-button-confirm" id="dialog-ok-btn">OK</button>
+        `;
+    }
+    
+    dialogContent += `
+            </div>
+        </div>
+    `;
+    
+    dialogEl.innerHTML = dialogContent;
+    document.body.appendChild(dialogEl);
+    
+    // Ajouter les gestionnaires d'événements
+    if (isConfirm) {
+        const confirmBtn = document.getElementById('dialog-confirm-btn');
+        const cancelBtn = document.getElementById('dialog-cancel-btn');
+        
+        confirmBtn.addEventListener('click', function() {
+            if (onConfirm) onConfirm();
+            document.body.removeChild(dialogEl);
+        });
+        
+        cancelBtn.addEventListener('click', function() {
+            if (onCancel) onCancel();
+            document.body.removeChild(dialogEl);
+        });
+    } else {
+        const okBtn = document.getElementById('dialog-ok-btn');
+        
+        okBtn.addEventListener('click', function() {
+            if (onConfirm) onConfirm();
+            document.body.removeChild(dialogEl);
+        });
+    }
+}
+
+// Ajouter un gestionnaire pour le bouton API qui a été supprimé
+document.addEventListener('DOMContentLoaded', function() {
+    const executeAPIbutton = document.getElementById('execute-api-button');
+    if (executeAPIbutton) {
+        executeAPIbutton.addEventListener('click', function() {
+            const token = document.getElementById('api-input').value;
+            if (!token || !window.currentClientId) return;
+            
+            const commandOutput = document.getElementById('api-output');
+            commandOutput.style.display = 'block';
+            commandOutput.innerHTML = `<div class="command-spinner"></div>Envoi...`;
+            
+            fetch(`/client/${window.currentClientId}/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                commandOutput.innerHTML = 'API mise à jour';
+            })
+            .catch(error => {
+                commandOutput.innerHTML = 'Erreur: ' + error.message;
+            });
+        });
+    }
+
+    // Initialiser les boutons au chargement de la page
+    initializeButtons();
 });

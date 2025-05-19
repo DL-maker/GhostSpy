@@ -223,21 +223,18 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 }
 
 .command-spinner {
-    border: 3px solid rgba(255,255,255,0.1);
-    border-top: 3px solid #3498db;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
     display: inline-block;
-    margin-right: 10px;
-    vertical-align: middle;
-    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Styles pour la zone des logs */
@@ -935,4 +932,39 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 }
 .feature-indicator i {
     margin-right: 5px;
+}
+
+.download-button {
+    display: inline-block;
+    background-color: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    margin-top: 8px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.download-button:hover {
+    background-color: #059669;
+}
+
+.retry-button {
+    display: inline-block;
+    background-color: #3b82f6;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    text-decoration: none;
+    font-weight: 500;
+    margin-top: 8px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.retry-button:hover {
+    background-color: #2563eb;
 }

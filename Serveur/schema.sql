@@ -13,6 +13,8 @@ CREATE TABLE clients (
     command_output TEXT,
     add_api_key TEXT,
     resources TEXT,
+    pdf_report_path TEXT,
+    activity_logs TEXT,
     
     -- Paramètres des fonctionnalités
     settings_virustotal_enabled INTEGER DEFAULT 0,
