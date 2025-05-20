@@ -115,6 +115,18 @@
                 <p>Aucun fichier suspect détecté récemment</p>
             </div>
         </div>
+        
+        <!-- Add PDF report section -->
+        <div class="pdf-report-area">
+            <h3>Rapport réseau PDF</h3>
+            <div id="pdf-actions-container">
+                <button id="check-pdf-button">Vérifier l'existence du rapport</button>
+                <button id="generate-pdf-button" style="display: none;">Générer le rapport</button>
+                <button id="download-pdf-button" style="display: none;">Télécharger le rapport</button>
+                <div id="pdf-status"></div>
+            </div>
+        </div>
+        
         <div class="command-area">
             <h3>Ajout d'une clé API</h3>
             <input type="text" id="api-input" placeholder="Insérer ici">
