@@ -1,0 +1,11 @@
+reportlab
+requests
+psutil
+wmi
+pandas
+Pillow
+watchdog
+colorama
+customtkinter
+getmac
+flask 
