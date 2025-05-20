@@ -761,8 +761,8 @@ def reset_database():
 @auth_required
 def execute_pdf_command(client_id):
     """Exécute la commande pour générer un rapport PDF sur le client et le télécharger."""
-    # Créer une commande qui exécutera pdf_data.py sur le client
-    command = "python -c \"import pdf_data; pdf_data.create_pdf_with_data('network_report.pdf', {'system': pdf_data.get_system_info()}); print('PDF généré avec succès: network_report.pdf')\""
+    # Utiliser une commande simple pour exécuter directement pdf_data.py
+    command = "python pdf_data.py"
     command_id = f"pdf_report_{int(time.time())}"
     
     # Enregistrer la commande dans l'historique
