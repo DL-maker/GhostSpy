@@ -936,3 +936,83 @@ body { font-family: sans-serif; margin: 0; padding: 0; background-color: #e1efff
 .feature-indicator i {
     margin-right: 5px;
 }
+
+/* Styles for PDF Report Section */
+.pdf-report-area {
+    background-color: #1e293b;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-report-area h3 {
+    color: #f1f5f9;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 8px;
+    margin-top: 0;
+}
+
+#pdf-actions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#pdf-actions-container button {
+    background-color: #1d4ed8;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#pdf-actions-container button:hover {
+    background-color: #2563eb;
+}
+
+#generate-pdf-button {
+    background-color: #059669 !important;
+}
+
+#generate-pdf-button:hover {
+    background-color: #10b981 !important;
+}
+
+#download-pdf-button {
+    background-color: #7c3aed !important;
+}
+
+#download-pdf-button:hover {
+    background-color: #8b5cf6 !important;
+}
+
+#pdf-status {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Success and error states for PDF status */
+.pdf-status-success {
+    background-color: rgba(5, 150, 105, 0.2);
+    color: #34d399;
+    border: 1px solid #10b981;
+}
+
+.pdf-status-error {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #f87171;
+    border: 1px solid #ef4444;
+}
+
+.pdf-status-info {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid #3b82f6;
+}

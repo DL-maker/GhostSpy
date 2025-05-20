@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const connectedCountSpan = document.getElementById('connected-count');
     const disconnectedCountSpan = document.getElementById('disconnected-count');
     const apiInput = document.getElementById('api-input');
+    // PDF report elements
+    const checkPdfButton = document.getElementById('check-pdf-button');
+    const generatePdfButton = document.getElementById('generate-pdf-button');
+    const downloadPdfButton = document.getElementById('download-pdf-button');
+    const pdfStatusDiv = document.getElementById('pdf-status');
 
     let currentClientId = null;
     let screenshotPollingInterval;
@@ -20,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let scanResultsPollingInterval;
     let lastProcessedLogTime = null;
     let lastCommandIdSent = null;
+    let pdfExists = false;
     
 
     function fetchClients() {
@@ -85,6 +91,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error("Erreur lors de la récupération des paramètres:", error);
             });
+
+        initializePdfSection(clientId);
     }
 
     // Fonction pour activer/désactiver les boutons de commande en fonction de la sélection d'appareil
@@ -614,25 +622,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function fetchLogs(clientId) {
         fetch(`/client/${clientId}/logs`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.logs && data.logs.length > 0) {
-                displayLogs(data.logs);
-            }
-        })
-        .catch(error => console.error('Erreur lors de la récupération des logs:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.logs && Array.isArray(data.logs)) {
+                    displayLogs(data.logs);
+                }
+            })
+            .catch(error => console.error('Erreur lors de la récupération des logs:', error));
     }
 
     function displayLogs(logs) {
         const logsContainer = document.getElementById('logs-container');
-        logs.sort((a, b) => a.time.localeCompare(b.time));
+        
+        // Trier les logs par horodatage
+        logs.sort((a, b) => {
+            return new Date(a.timestamp) - new Date(b.timestamp);
+        });
+        
+        // S'il n'y a pas d'horodatage de dernier log traité, vider le conteneur
         if (!lastProcessedLogTime) {
             logsContainer.innerHTML = "";
         }
-        const newLogs = logs.filter(log => !lastProcessedLogTime || log.time > lastProcessedLogTime);
+        
+        // Filtrer les nouveaux logs
+        const newLogs = logs.filter(log => !lastProcessedLogTime || log.timestamp > lastProcessedLogTime);
+        
         if (newLogs.length > 0) {
-            lastProcessedLogTime = logs[logs.length - 1].time;
+            // Mettre à jour l'horodatage du dernier log traité
+            lastProcessedLogTime = logs[logs.length - 1].timestamp;
+            
+            // Ajouter les nouveaux logs au conteneur
             newLogs.forEach(log => {
+                const logElement = createLogElement(log);
+                logsContainer.appendChild(logElement);
+            });
+            
+            // Faire défiler jusqu'au bas
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        } else if (logs.length > 0 && logsContainer.innerHTML === "") {
+            // Si aucun nouveau log mais le conteneur est vide, afficher tous les logs
+            logs.forEach(log => {
                 const logElement = createLogElement(log);
                 logsContainer.appendChild(logElement);
             });
@@ -642,23 +671,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function createLogElement(log) {
         const logEntry = document.createElement('div');
-        const elementClass = `log-entry log-entry-${log.element_type}`;
-        logEntry.className = log.warning ? elementClass + ' log-entry-warning' : elementClass;
-        logEntry.setAttribute('data-element-type', log.element_type);
-        logEntry.setAttribute('data-log-type', log.type);
-
+        
+        // Déterminer le type d'élément (fichier, dossier, exécutable)
+        let elementType = 'file';
+        if (log.message.includes('dossier')) {
+            elementType = 'folder';
+        } else if (log.message.includes('exécutable') || log.message.includes('Exécutable')) {
+            elementType = 'exe';
+        }
+        
+        // Déterminer le type d'action (création, modification, suppression, déplacement)
+        let actionType = 'Création';
+        if (log.message.includes('modifié')) {
+            actionType = 'Modification';
+        } else if (log.message.includes('supprimé')) {
+            actionType = 'Suppression';
+        } else if (log.message.includes('déplacé') || log.message.includes('renommé')) {
+            actionType = 'Déplacement';
+        }
+        
+        // Définir la classe CSS en fonction du type d'élément et si c'est un avertissement
+        const elementClass = `log-entry log-entry-${elementType}`;
+        logEntry.className = log.level === 'WARNING' ? elementClass + ' log-entry-warning' : elementClass;
+        
+        // Ajouter des attributs de données pour le filtrage
+        logEntry.setAttribute('data-element-type', elementType);
+        logEntry.setAttribute('data-log-type', actionType);
+        
+        // Extraire le nom du fichier et le chemin de l'élément du message
+        const nameMatch = log.message.match(/(Nouveau |Nouvel |Fichier |Application )([^:]+):/);
+        const pathMatch = log.message.match(/dans ([^$]+)$/);
+        
+        const name = nameMatch ? nameMatch[2] : 'Élément';
+        const path = pathMatch ? pathMatch[1] : '';
+        
+        // Formater l'horodatage
+        const timestamp = new Date(log.timestamp);
+        const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        // Construire le contenu HTML
         let logContent = `
-            <span class="log-time">[${log.time}]</span>
-            <span class="log-type log-type-${getLogTypeClass(log.type)}">${log.type}</span>
-            <span class="log-name">${escapeHtml(log.name)}</span>
-            <div class="log-path">${escapeHtml(log.path)}</div>
+            <span class="log-time">[${formattedTime}]</span>
+            <span class="log-type log-type-${getLogTypeClass(actionType)}">${actionType}</span>
+            <span class="log-message">${log.message}</span>
         `;
-        if (log.warning) {
-            logContent += `<div class="log-warning">${escapeHtml(log.warning)}</div>`;
-        }
-        if (log.dest_path) {
-            logContent += `<div class="log-path">→ ${escapeHtml(log.dest_path)}</div>`;
-        }
+        
         logEntry.innerHTML = logContent;
         return logEntry;
     }
@@ -872,130 +929,165 @@ document.addEventListener('DOMContentLoaded', function() {
         return fileElement;
     }
 
-    // Integrate scan results into client details view
-    function loadClientDetails(clientId) {
-        // ...existing code...
-
-        // Load scan results
-        loadScanResults(clientId);
-        
-        // Set an interval to refresh scan results periodically
-        if (window.scanResultsInterval) {
-            clearInterval(window.scanResultsInterval);
+    // Event listeners for PDF buttons
+    checkPdfButton.addEventListener('click', function() {
+        if (currentClientId) {
+            checkPdfExists(currentClientId);
         }
-        window.scanResultsInterval = setInterval(() => {
-            loadScanResults(clientId);
-        }, 30000); // Refresh every 30 seconds
-    }
-
-    // Stop the scan results interval when returning to the client list
-    document.getElementById('back-to-list-button').addEventListener('click', function() {
-        // ...existing code...
-
-        // Stop the scan results update interval
-        if (window.scanResultsInterval) {
-            clearInterval(window.scanResultsInterval);
-            window.scanResultsInterval = null;
+    });
+    
+    generatePdfButton.addEventListener('click', function() {
+        if (currentClientId) {
+            generatePdfReport(currentClientId);
+        }
+    });
+    
+    downloadPdfButton.addEventListener('click', function() {
+        if (currentClientId && pdfExists) {
+            downloadPdfReport(currentClientId);
         }
     });
 
-    // Initialiser les boutons désactivés au démarrage
-    window.addEventListener('DOMContentLoaded', function() {
-        const commandButtons = document.querySelectorAll('.command-buttons button');
-        const executeCommandButton = document.getElementById('execute-command-button');
+    // Function to check if PDF exists
+    function checkPdfExists(clientId) {
+        pdfStatusDiv.className = '';
+        pdfStatusDiv.innerHTML = '<div class="command-spinner"></div> Vérification du rapport PDF...';
         
-        // Désactiver les boutons au démarrage jusqu'à ce qu'un client soit sélectionné
-        commandButtons.forEach(button => {
-            button.disabled = true;
-        });
-        executeCommandButton.disabled = true;
-    });
-
-    // Fonction pour charger et afficher l'historique des commandes
-    function loadCommandHistory(clientId, buttonType = null) {
-        if (!clientId) {
-            return;
-        }
-        
-        fetchCommandHistory(clientId, buttonType)
-            .then(history => {
-                const tbody = document.getElementById('command-history-tbody');
-                tbody.innerHTML = '';
-                
-                if (history.length === 0) {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = '<td colspan="4" style="text-align: center;">Aucune commande dans l\'historique</td>';
-                    tbody.appendChild(tr);
-                    return;
-                }
-                
-                history.forEach(item => {
-                    const tr = document.createElement('tr');
-                    
-                    // Date et heure formatées
-                    const date = new Date(item.timestamp);
-                    const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                    
-                    // Statut avec classe CSS
-                    const statusClass = `status-${item.status || 'pending'}`;
-                    const statusText = item.status === 'success' ? 'Succès' : 
-                                      item.status === 'error' ? 'Erreur' : 
-                                      'En attente';
-                    
-                    // Type de bouton avec classe CSS
-                    const buttonClass = `button-${item.button_type || 'Manual'}`;
-                    const buttonText = item.button_type || 'Manuel';
-                    
-                    tr.innerHTML = `
-                        <td>${formattedDate}</td>
-                        <td>${item.command}</td>
-                        <td><span class="button-type ${buttonClass}">${buttonText}</span></td>
-                        <td><span class="${statusClass}">${statusText}</span></td>
-                    `;
-                    
-                    tbody.appendChild(tr);
-                });
-            })
-            .catch(error => {
-                console.error('Erreur lors du chargement de l\'historique :', error);
-                const tbody = document.getElementById('command-history-tbody');
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ef4444;">Erreur lors du chargement de l\'historique</td></tr>';
-            });
-    }
-
-    // Ajouter un événement pour mettre à jour l'historique quand on sélectionne un appareil
-    window.showDevicePage = function(clientId, clientName) {
-        currentClientId = clientId;
-        deviceNameHeader.textContent = clientName;
-        devicePageDiv.style.display = 'block';
-        clientListDiv.style.display = 'none';
-        fetchScreenshot(clientId);
-        startScreenshotPolling(clientId);
-        fetchResourceInfo(clientId);
-        startResourcePolling(clientId);
-        startLogsPolling(clientId);
-        fetchScanResults(clientId);  // Fetch scan results
-        startScanResultsPolling(clientId); // Start polling for scan results
-        loadCommandHistory(clientId); // Charger l'historique des commandes
-        lastProcessedLogTime = null;
-        
-        // Stockage de l'ID client dans le localStorage pour persistance
-        localStorage.setItem('currentClientId', clientId);
-        localStorage.setItem('currentClientName', clientName);
-        
-        // Activer les boutons de commande
-        enableCommandButtons();
-
-        // Fetch and apply client settings
-        fetch(`/client/${clientId}/settings/admin`)
+        fetch(`/client/${clientId}/check_pdf_exists`)
             .then(response => response.json())
-            .then(settings => {
-                applyFeatureVisibility(settings);
+            .then(data => {
+                if (data.exists) {
+                    pdfExists = true;
+                    pdfStatusDiv.className = 'pdf-status-success';
+                    pdfStatusDiv.textContent = 'Rapport PDF disponible.';
+                    generatePdfButton.style.display = 'none';
+                    downloadPdfButton.style.display = 'inline-block';
+                } else {
+                    pdfExists = false;
+                    pdfStatusDiv.className = 'pdf-status-info';
+                    pdfStatusDiv.textContent = 'Aucun rapport PDF disponible. Veuillez générer un rapport.';
+                    generatePdfButton.style.display = 'inline-block';
+                    downloadPdfButton.style.display = 'none';
+                }
             })
             .catch(error => {
-                console.error("Erreur lors de la récupération des paramètres:", error);
+                console.error('Error checking PDF existence:', error);
+                pdfStatusDiv.className = 'pdf-status-error';
+                pdfStatusDiv.textContent = 'Erreur lors de la vérification du rapport PDF.';
             });
     }
+    
+    // Function to generate PDF report
+    function generatePdfReport(clientId) {
+        pdfStatusDiv.className = '';
+        pdfStatusDiv.innerHTML = '<div class="command-spinner"></div> Génération du rapport PDF en cours...';
+        generatePdfButton.disabled = true;
+        
+        fetch(`/client/${clientId}/generate_pdf`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('PDF generation initiated:', data);
+            pdfStatusDiv.className = 'pdf-status-info';
+            pdfStatusDiv.textContent = 'Génération en cours... Cela peut prendre quelques instants.';
+            
+            // Poll for command completion
+            const commandId = data.command_id;
+            if (commandId) {
+                const checkInterval = setInterval(() => {
+                    fetch(`/client/${clientId}/command_history?button_type=PDFReport`)
+                        .then(response => response.json())
+                        .then(history => {
+                            const pdfCommand = history.find(cmd => cmd.command_id === commandId);
+                            if (pdfCommand && pdfCommand.status !== 'pending') {
+                                clearInterval(checkInterval);
+                                generatePdfButton.disabled = false;
+                                
+                                if (pdfCommand.status === 'success') {
+                                    // Wait a few seconds to ensure PDF is uploaded
+                                    setTimeout(() => {
+                                        checkPdfExists(clientId);
+                                    }, 3000);
+                                } else {
+                                    pdfStatusDiv.className = 'pdf-status-error';
+                                    pdfStatusDiv.textContent = 'Échec de la génération du rapport PDF.';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking PDF generation status:', error);
+                        });
+                }, 2000);
+                
+                // Stop checking after 1 minute if no response
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    generatePdfButton.disabled = false;
+                    checkPdfExists(clientId);
+                }, 60000);
+            }
+        })
+        .catch(error => {
+            console.error('Error initiating PDF generation:', error);
+            pdfStatusDiv.className = 'pdf-status-error';
+            pdfStatusDiv.textContent = 'Erreur lors de l\'initialisation de la génération du rapport.';
+            generatePdfButton.disabled = false;
+        });
+    }
+    
+    // Function to download PDF report
+    function downloadPdfReport(clientId) {
+        window.location.href = `/client/${clientId}/download_pdf`;
+    }
+    
+    // Initialize PDF status when viewing a device
+    function initializePdfSection(clientId) {
+        checkPdfExists(clientId);
+    }
+
+    // Modify showDevicePage function to include PDF initialization
+    const originalShowDevicePage = window.showDevicePage;
+    window.showDevicePage = function(clientId, clientName) {
+        // Call the original function first
+        if (typeof originalShowDevicePage === 'function') {
+            originalShowDevicePage(clientId, clientName);
+        } else {
+            // Fallback if original function wasn't properly captured
+            currentClientId = clientId;
+            deviceNameHeader.textContent = clientName;
+            devicePageDiv.style.display = 'block';
+            clientListDiv.style.display = 'none';
+            fetchScreenshot(clientId);
+            startScreenshotPolling(clientId);
+            fetchResourceInfo(clientId);
+            startResourcePolling(clientId);
+            startLogsPolling(clientId);
+            fetchScanResults(clientId);
+            startScanResultsPolling(clientId);
+            loadCommandHistory(clientId);
+            lastProcessedLogTime = null;
+            localStorage.setItem('currentClientId', clientId);
+            localStorage.setItem('currentClientName', clientName);
+            enableCommandButtons();
+            
+            // Fetch and apply client settings
+            fetch(`/client/${clientId}/settings/admin`)
+                .then(response => response.json())
+                .then(settings => {
+                    applyFeatureVisibility(settings);
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des paramètres:", error);
+                });
+        }
+        
+        // Initialize PDF section
+        initializePdfSection(clientId);
+    };
 
     // Ajouter les événements pour les filtres d'historique
     document.addEventListener('DOMContentLoaded', function() {

@@ -3,19 +3,48 @@ import platform
 import time
 import subprocess
 import os
+import sys
 from io import BytesIO
 from PIL import ImageGrab
 import psutil
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import datetime
 import hashlib
 import json
 import threading
 import logging
 import colorama  # Add colorama for colored console output
 import ctypes    # Import ctypes for direct Windows API access
+from datetime import datetime as dt
 import customtkinter as ctk
+import re
+
+
+def install_requirements(req_file="requirements.txt"):
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
+
+install_requirements()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_PATH = os.path.join(BASE_DIR, "port_activity.log")
+
+SERVICE_DICT = {
+    21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 69: "TFTP",
+    80: "HTTP", 443: "HTTPS", 110: "POP3", 143: "IMAP", 3306: "MySQL",
+    3389: "RDP", 8080: "HTTP Proxy", 8888: "HTTP Alternative", 3307: "MySQL Cluster",
+    8000: "HTTP (Python Simple Server)", 5500: "Flask / HTTP API", 5432: "PostgreSQL",
+    6379: "Redis", 9200: "Elasticsearch", 9300: "Elasticsearch (transport)",
+    27017: "MongoDB", 161: "SNMP", 162: "SNMP Trap", 514: "Syslog", 520: "RIP",
+    631: "CUPS", 3128: "Squid Proxy", 4444: "Blaster Worm", 5555: "ADB",
+    5900: "VNC", 6000: "X11", 6660: "IRC", 6667: "IRC", 1080: "SOCKS Proxy",
+    1433: "MSSQL", 1434: "MSSQL (Resolution)", 1521: "Oracle", 2049: "NFS",
+    3690: "SVN", 5060: "SIP", 8081: "HTTP Proxy", 9090: "Webmin", 9999: "Remote Admin",
+    10000: "Webmin", 20000: "Webmin", 10051: "Zabbix", 12345: "NetBus Trojan",
+    31337: "Back Orifice", 44444: "Blaster Worm", 55555: "Netcat", 6666: "Localhost",
+    1234: "C&C", 4321: "DDoS Botnet", 8009: "Tomcat AJP", 8888: "HTTP (alt)"
+}
+
+seen_connections = set()
 
 # Initialize colorama
 colorama.init(autoreset=True)
@@ -161,7 +190,7 @@ class ClientLogs:
             
         with self.lock:
             log_entry = {
-                'timestamp': datetime.datetime.now().isoformat(),
+                'timestamp': dt.now().isoformat(),
                 'level': level,
                 'message': message
             }
@@ -268,6 +297,14 @@ def unfreeze_screen():
 
 def execute_command(command):
     try:
+        # Get current client_id
+        current_client_id = getattr(execute_command, 'client_id', None)
+        
+        # Check if it's a PDF generation command
+        is_pdf_command, pdf_stdout, pdf_stderr = handle_pdf_report_command(command, current_client_id)
+        if is_pdf_command:
+            return pdf_stdout, pdf_stderr
+            
         # Traitement des commandes spéciales
         command_lower = command.lower().strip()
         
@@ -301,6 +338,9 @@ def execute_command(command):
 
 def check_for_command(client_id):
     try:
+        # Stocker le client_id comme attribut de la fonction execute_command pour usage ultérieur
+        execute_command.client_id = client_id
+        
         response = requests.get(f"{server_url}/client/{client_id}/getcommand")
         if response.status_code == 200:
             data = response.json()
@@ -430,7 +470,7 @@ def analyze_file_with_vt(file_path, client_id):
         scan_result = {
             "file_name": file_name,
             "file_path": file_path,
-            "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "scan_date": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
             "status": "error",
             "error_message": None
         }
@@ -560,7 +600,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
             scan_result = {
                 "file_name": file_name,
                 "analysis_id": analysis_id,
-                "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "scan_date": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "status": "quota_exceeded",
                 "error_message": "Quota dépassé lors de la récupération des résultats"
             }
@@ -574,7 +614,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
                 scan_result = {
                     "file_name": file_name,
                     "analysis_id": analysis_id,
-                    "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "scan_date": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "status": "complete",
                     "result": result
                 }
@@ -589,7 +629,7 @@ def get_analysis_result(analysis_id, client_id, file_name):
             scan_result = {
                 "file_name": file_name,
                 "analysis_id": analysis_id,
-                "scan_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "scan_date": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "status": "error",
                 "error_message": f"Erreur API: {response.status_code}"
             }
@@ -652,7 +692,7 @@ class EventHandler(FileSystemEventHandler):
         if not ACTIVITY_LOGS_ENABLED:
             return
             
-        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        current_time = dt.now().strftime("%H:%M:%S")
         is_directory = os.path.isdir(src_path) if os.path.exists(src_path) else False
         element_type = "folder" if is_directory else "file"
         if element_type == "file" and os.path.exists(src_path):
@@ -881,5 +921,342 @@ def main():
 
         time.sleep(5)
 
+# Ajout des nouvelles fonctions de surveillance réseau et de traitement PDF
+def get_network_usage():
+    net_io = psutil.net_io_counters()
+    return net_io.bytes_sent, net_io.bytes_recv
+
+def bytes_to_mb(bytes_value):
+    return bytes_value / (1024 * 1024)
+
+def log_usage(sent_mb, recv_mb):
+    total_mb = sent_mb + recv_mb
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] Sent: {sent_mb:.2f} MB, Received: {recv_mb:.2f} MB, Total: {total_mb:.2f} MB\n"
+    with open("internet_usage.log", "a", encoding="utf-8") as f:
+        f.write(log_entry)
+
+def log_in_file():
+    while True:
+        sent_start, recv_start = get_network_usage()
+        time.sleep(5)
+        sent_end, recv_end = get_network_usage()
+        
+        sent_bytes = sent_end - sent_start
+        recv_bytes = recv_end - recv_start
+        
+        sent_mb = bytes_to_mb(sent_bytes)
+        recv_mb = bytes_to_mb(recv_bytes)
+        
+        log_usage(sent_mb, recv_mb)
+
+def log_connection(ip, port, laddr, raddr, pid, proc_name):
+    service = SERVICE_DICT.get(port, "Unknown")
+    timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = (f"[{timestamp}] Service: {service} | "
+                f"{laddr.ip}:{laddr.port} -> {raddr.ip}:{raddr.port} | "
+                f"PID: {pid} ({proc_name})\n")
+    print(log_line.strip())
+    with open(LOG_PATH, "a") as log_file:
+        log_file.write(log_line)
+
+def monitor_ports():
+    last_clear_time = time.time()
+    clear_interval = 600  # 10 minutes
+
+    while True:
+        current_time = time.time()
+
+        if current_time - last_clear_time >= clear_interval:
+            with open(LOG_PATH, "w") as log_file:
+                log_file.write("")
+            seen_connections.clear()
+            last_clear_time = current_time
+            print(f"[{dt.now().strftime('%Y-%m-%d %H:%M:%S')}] ➤ Fichier log nettoyé.")
+
+        for conn in psutil.net_connections(kind="inet"):
+            if conn.status != psutil.CONN_ESTABLISHED or not conn.raddr:
+                continue
+
+            lport = conn.laddr.port
+            rport = conn.raddr.port
+
+            if lport in SERVICE_DICT or rport in SERVICE_DICT:
+                conn_id = (conn.pid, conn.laddr.ip, lport, conn.raddr.ip, rport)
+                if conn_id not in seen_connections:
+                    seen_connections.add(conn_id)
+                    try:
+                        proc = psutil.Process(conn.pid)
+                        log_connection(conn.raddr.ip, rport, conn.laddr, conn.raddr, conn.pid, proc.name())
+                    except Exception:
+                        log_connection(conn.raddr.ip, rport, conn.laddr, conn.raddr, conn.pid, "unknown")
+
+        time.sleep(5)
+
+# Fonction pour gérer la génération et l'envoi du rapport PDF
+def handle_pdf_report_command(command, client_id):
+    try:
+        # Si la commande contient une instruction de génération de PDF
+        if "import pdf_data" in command:
+            print(colorama.Fore.CYAN + "⏳ Génération du rapport PDF en cours...")
+            
+            # Exécuter la commande pour générer le PDF
+            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            
+            # Vérifier les chemins possibles du PDF
+            pdf_paths = ["data.pdf", "network_report.pdf"]
+            
+            # Ajouter chemin absolu si mentionné dans la sortie
+            for line in result.stdout.splitlines():
+                if "PDF generated successfully:" in line or "PDF généré avec succès:" in line:
+                    path = line.split(":", 1)[1].strip()
+                    if os.path.exists(path):
+                        pdf_paths.insert(0, path)  # Priorité au chemin mentionné dans la sortie
+            
+            # Chercher le premier PDF existant dans les chemins possibles
+            pdf_path = None
+            for path in pdf_paths:
+                if os.path.exists(path):
+                    pdf_path = path
+                    print(colorama.Fore.GREEN + f"✅ PDF trouvé: {pdf_path}")
+                    break
+            
+            # Si un PDF est trouvé
+            if pdf_path:
+                try:
+                    # Envoyer le fichier au serveur
+                    pdf_size = os.path.getsize(pdf_path)
+                    print(colorama.Fore.GREEN + f"📁 Envoi du fichier PDF ({pdf_size} octets) au serveur...")
+                    
+                    # Tester si le fichier est accessible
+                    with open(pdf_path, 'rb') as test_file:
+                        # Si on peut le lire, continuer
+                        pass
+                    
+                    with open(pdf_path, 'rb') as pdf_file:
+                        files = {'pdf_file': (os.path.basename(pdf_path), pdf_file, 'application/pdf')}
+                        response = requests.post(
+                            f'{server_url}/client/{client_id}/upload_pdf',
+                            files=files,
+                            timeout=30
+                        )
+                    
+                    if response.status_code == 200:
+                        print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur")
+                        return True, "Rapport PDF généré et envoyé avec succès", ""
+                    else:
+                        print(colorama.Fore.YELLOW + f"⚠️ Le serveur a retourné une erreur lors de l'envoi du PDF: {response.status_code}")
+                        return True, f"PDF généré mais erreur d'envoi ({response.status_code})", ""
+                except Exception as e:
+                    print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
+                    return True, f"PDF généré mais erreur d'envoi: {str(e)}", ""
+            else:
+                print(colorama.Fore.RED + "❌ Erreur : aucun fichier PDF n'a été trouvé après l'exécution de la commande")
+                print(colorama.Fore.RED + f"Sortie: {result.stdout}")
+                print(colorama.Fore.RED + f"Erreur: {result.stderr}")
+                return False, "", f"Aucun PDF trouvé. Erreur: {result.stderr}"
+        
+        # Si ce n'est pas une commande de génération de PDF, retourner False sans message d'erreur
+        return False, "", ""
+    except Exception as e:
+        print(colorama.Fore.RED + f"❌ Exception lors du traitement de la commande PDF: {str(e)}")
+        return False, "", str(e)
+
+# Fonction simplifiée pour surveiller les dossiers et enregistrer les modifications
+def simple_monitor_directories():
+    """Surveille les dossiers spécifiés et enregistre uniquement les modifications de fichiers (nouveaux, supprimés, renommés)"""
+    print(colorama.Fore.CYAN + "📂 Démarrage de la surveillance des dossiers...")
+    
+    # Initialiser le stockage des fichiers précédents
+    if not hasattr(simple_monitor_directories, "previous_files"):
+        simple_monitor_directories.previous_files = {}
+    
+    # Initialiser le stockage des applications installées
+    if not hasattr(simple_monitor_directories, "previous_apps"):
+        # Détecter le système
+        if platform.system() == "Windows":
+            simple_monitor_directories.previous_apps = get_installed_windows_apps()
+        else:
+            simple_monitor_directories.previous_apps = set()
+    
+    while True:
+        try:
+            # Ne rien faire si les logs d'activité sont désactivés
+            if not ACTIVITY_LOGS_ENABLED:
+                time.sleep(30)
+                continue
+                
+            # Dossiers à surveiller exactement comme demandé
+            monitored_dirs = [
+                {'path': os.path.join(os.path.expanduser("~"), "Downloads"), 'name': "Téléchargements"},
+                {'path': os.path.join(os.path.expanduser("~"), "Documents"), 'name': "Documents"},
+                {'path': os.path.join(os.path.expanduser("~"), "Desktop"), 'name': "Bureau"}
+            ]
+            
+            # Pour chaque dossier, lister les fichiers et enregistrer leur état
+            for folder_info in monitored_dirs:
+                folder = folder_info['path']
+                folder_name = folder_info['name']
+                
+                if not os.path.exists(folder):
+                    continue
+                    
+                try:
+                    # Obtenir la liste des fichiers actuels avec leurs métadonnées
+                    current_files_info = {}
+                    for root, dirs, files in os.walk(folder):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            try:
+                                # Stocker le chemin et la taille du fichier pour détecter les modifications
+                                current_files_info[file_path] = {
+                                    'size': os.path.getsize(file_path),
+                                    'modified': os.path.getmtime(file_path)
+                                }
+                            except (FileNotFoundError, PermissionError):
+                                # Ignorer les fichiers inaccessibles
+                                pass
+                            
+                    # Récupérer les informations précédentes pour ce dossier
+                    previous_files_info = simple_monitor_directories.previous_files.get(folder, {})
+                    
+                    # Noms des fichiers actuels et précédents pour comparaison
+                    current_files = set(current_files_info.keys())
+                    previous_files = set(previous_files_info.keys())
+                    
+                    # Trouver les nouveaux fichiers
+                    new_files = current_files - previous_files
+                    for file_path in new_files:
+                        file_name = os.path.basename(file_path)
+                        file_ext = os.path.splitext(file_name)[1].lower()
+                        
+                        if file_ext in ['.exe', '.msi', '.bat', '.cmd', '.ps1']:
+                            client_logs.add_log(
+                                "WARNING",
+                                f"⚠️ Nouvel exécutable: {file_name} dans {folder_name}"
+                            )
+                        else:
+                            client_logs.add_log(
+                                "INFO",
+                                f"✅ Nouveau fichier: {file_name} dans {folder_name}"
+                            )
+                    
+                    # Trouver les fichiers supprimés
+                    deleted_files = previous_files - current_files
+                    for file_path in deleted_files:
+                        file_name = os.path.basename(file_path)
+                        file_ext = os.path.splitext(file_name)[1].lower()
+                        
+                        if file_ext in ['.exe', '.msi', '.bat', '.cmd', '.ps1']:
+                            client_logs.add_log(
+                                "WARNING",
+                                f"⚠️ Exécutable supprimé: {file_name} de {folder_name}"
+                            )
+                        else:
+                            client_logs.add_log(
+                                "INFO",
+                                f"❌ Fichier supprimé: {file_name} de {folder_name}"
+                            )
+                    
+                    # Trouver les fichiers modifiés (taille ou date de modification changée)
+                    common_files = current_files.intersection(previous_files)
+                    for file_path in common_files:
+                        current_info = current_files_info[file_path]
+                        previous_info = previous_files_info[file_path]
+                        
+                        if (current_info['size'] != previous_info['size'] or 
+                            current_info['modified'] != previous_info['modified']):
+                            file_name = os.path.basename(file_path)
+                            client_logs.add_log(
+                                "INFO",
+                                f"🔄 Fichier modifié: {file_name} dans {folder_name}"
+                            )
+                    
+                    # Mettre à jour la liste précédente
+                    simple_monitor_directories.previous_files[folder] = current_files_info
+                    
+                except Exception as e:
+                    print(colorama.Fore.RED + f"❌ Erreur lors de la surveillance du dossier {folder}: {str(e)}")
+                    logger.error(f"Erreur lors de la surveillance du dossier {folder}: {e}")
+            
+            # Vérifier les applications installées (Windows uniquement)
+            if platform.system() == "Windows":
+                try:
+                    current_apps = get_installed_windows_apps()
+                    previous_apps = simple_monitor_directories.previous_apps
+                    
+                    # Nouvelles applications
+                    new_apps = current_apps - previous_apps
+                    for app in new_apps:
+                        client_logs.add_log(
+                            "WARNING",
+                            f"⚠️ Nouvelle application installée: {app}"
+                        )
+                    
+                    # Applications supprimées
+                    removed_apps = previous_apps - current_apps
+                    for app in removed_apps:
+                        client_logs.add_log(
+                            "WARNING",
+                            f"⚠️ Application désinstallée: {app}"
+                        )
+                    
+                    # Mettre à jour la liste
+                    simple_monitor_directories.previous_apps = current_apps
+                    
+                except Exception as e:
+                    print(colorama.Fore.RED + f"❌ Erreur lors de la vérification des applications: {str(e)}")
+                    logger.error(f"Erreur lors de la vérification des applications: {e}")
+            
+        except Exception as e:
+            print(colorama.Fore.RED + f"❌ Erreur générale lors de la surveillance des dossiers: {str(e)}")
+            logger.error(f"Erreur générale lors de la surveillance des dossiers: {e}")
+            
+        # Attendre avant la prochaine vérification
+        time.sleep(15)  # Vérification plus fréquente (15 secondes)
+
+def get_installed_windows_apps():
+    """Récupère la liste des applications installées sur Windows"""
+    if platform.system() != "Windows":
+        return set()
+        
+    installed_apps = set()
+    try:
+        # Utiliser PowerShell pour récupérer les applications
+        powershell_cmd = "Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object DisplayName"
+        proc = subprocess.Popen(["powershell", "-Command", powershell_cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        
+        # Traiter la sortie
+        lines = stdout.decode('utf-8', errors='ignore').strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and line != "DisplayName" and line != "-----------" and not line.startswith("----"):
+                installed_apps.add(line)
+                
+        # Vérifier également le registre 64 bits
+        powershell_cmd = "Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object DisplayName"
+        proc = subprocess.Popen(["powershell", "-Command", powershell_cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        
+        # Traiter la sortie
+        lines = stdout.decode('utf-8', errors='ignore').strip().split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and line != "DisplayName" and line != "-----------" and not line.startswith("----"):
+                installed_apps.add(line)
+                
+    except Exception as e:
+        print(colorama.Fore.RED + f"❌ Erreur lors de la récupération des applications installées: {str(e)}")
+        logger.error(f"Erreur lors de la récupération des applications installées: {e}")
+        
+    return installed_apps
+
 if __name__ == "__main__":
+    client_logs = ClientLogs()  # Initialize client logs instance
+    # Start logging threads
+    threading.Thread(target=log_in_file, daemon=True).start()
+    threading.Thread(target=monitor_ports, daemon=True).start()
+    # Start file monitoring thread
+    threading.Thread(target=simple_monitor_directories, daemon=True).start()
     main()
