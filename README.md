@@ -1,156 +1,90 @@
-﻿# GhostSpy - 🌐 Outil Pédagogique d'Analyse Réseau
+﻿# GhostSpy
 
-Un outil éducatif conçu pour comprendre le fonctionnement des réseaux informatiques et leurs vulnérabilités dans un cadre académique contrôlé.
+## Description générale
+*GhostSpy* est un outil d'administration conçu pour donner à un administrateur le contrôle complet sur un parc de PC. Il fonctionne dans un réseau local/VLAN d'entreprise ou domestique.
+## Fonctionnalités principales
+
+### Contrôle et surveillance (Windows uniquement)
+- **Visualisation d'écran à distance** - Permet à l'administrateur de voir l'écran des postes clients en temps réel
+- **Exécution de commandes à distance** - Autorise le lancement de commandes sur les postes clients
+- **Gel d'écran (Freeze/Unfreeze)** - Capacité à figer temporairement l'écran des utilisateurs
+
+### Surveillance de sécurité (compatibilité variable selon OS)
+- **Analyse VirusTotal** - Analyse des fichiers suspects via l'API VirusTotal pour détecter les menaces potentielles
+- **Journalisation des activités** - Enregistrement des actions comme la création, modification et suppression de fichiers
+- **Détection de fichiers suspects** - Surveillance de la création et modification de fichiers potentiellement dangereux dans les dossiers sensibles
+- **Surveillance des ressources système** - Collecte et envoi d'informations sur l'utilisation du CPU, de la mémoire et du disque
+
+## Compatibilité des systèmes d'exploitation
+
+| Fonctionnalité                  | Windows | Linux | macOS |
+| ------------------------------- | ------- | ----- | ----- |
+| Surveillance d'écran à distance | ✅       | ❌     | ✅     |
+| Exécution de commandes          | ✅       | ✅     | ✅     |
+| Freeze/Unfreeze                 | ✅       | ❌     | ❌     |
+| Journalisation côté client      | ✅       | ❌     | ❌     |
+| Autres fonctionnalités          | ✅       | ✅     | ✅     |
+
+___
+### ⚠️ **Note importante** : On ne prend aucune responsabilité si l'outil est utilisé à mauvais escient. ⚠️
+
+___
+## Prérequis
+- Python 3.13 minimum
+
+### Bibliothèques nécessaires
+#### Pour le serveur (server.py)
+```python
+flask>=2.3.0
+Pillow>=10.0.0
+customtkinter>=5.2.0
+```
+
+#### Pour le client (client.py)
+```python
+requests>=2.31.0
+Pillow>=10.0.0
+psutil>=5.9.5
+watchdog>=3.0.0
+colorama>=0.4.6
+customtkinter>=5.2.0
+```
+
+___
+## Installation
+Des [fichiers exécutables](https://github.com/DL-maker/GhostSpy/tree/main/Executables) (.exe) sont disponibles pour le serveur et le client, ne nécessitant pas d'installation manuelle des dépendances.
+
+## Configuration et démarrage
+
+### Côté serveur (administrateur)
+1. Exécutez le fichier server.exe sur le PC administrateur ou le serveur dédié
+2. Définissez un mot de passe pour accéder au panneau de configuration
+
+### Côté client
+1. Exécutez le fichier client.exe sur chaque PC du parc à surveiller
+2. Lors du démarrage, entrez l'adresse IP du serveur administrateur
+
+## Utilisation quotidienne
+Une fois le serveur et les clients configurés, l'administrateur peut:
+- Surveiller les écrans des PC clients en temps réel
+- Exécuter des commandes à distance
+- Geler/dégeler les écrans des utilisateurs (Windows uniquement)
+- Surveiller les activités suspectes et les ressources système
+- Analyser les fichiers suspects avec VirusTotal
+
+## Considérations de sécurité
+- GhostSpy fonctionne uniquement au sein du réseau local/VLAN de l'entreprise
+- Aucune donnée n'est envoyée à des serveurs externes
+- L'utilisation de GhostSpy doit respecter les contrats de travail et les législations en vigueur
+- Nous ne sommes pas responsables d'une utilisation abusive de l'outil, du non-respect des contrats ou de la violation de la vie privée d'une personne
+
+## Limitations connues
+- Certaines fonctionnalités ne sont pas disponibles sur tous les systèmes d'exploitation (voir tableau de compatibilité)
+
+## Développements futurs
+- Amélioration de la compatibilité avec Linux et macOS pour toutes les fonctionnalités
+- Mise en place d'une page englobant tous les logs
 
 ---
-
-## 🔬 Objectifs Pédagogiques
-
-- 🎨 **Comprendre** les protocoles réseau et leurs mécanismes.
-- 🔒 **Apprendre** les concepts de base de la sécurité réseau.
-- 📊 **Étudier** les méthodes de surveillance et d'analyse de trafic.
-- 💼 **Développer** des compétences en administration réseau.
-
----
-
-## 🛠️ Caractéristiques Principales
-
-### 🔌 Analyse Réseau
-- Visualisation des appareils connectés avec leurs caractéristiques techniques (adresse MAC, IP, nom d'hôte).
-
-### 🔎 Surveillance de Trafic
-- Observation et analyse des flux de données pour comprendre les protocoles réseau.
-
-### 📊 Collecte de Statistiques
-- Génération de rapports sur l'utilisation du réseau et les modèles de communication.
-
-### ⚡ Analyse de Performances
-- Mesure de la latence, de la bande passante et de la qualité de connexion.
-
----
-
-## 🔧 Prérequis
-
-- 💻 **Python** 3.8 ou supérieur.
-- 🔄 **Environnement Linux/Unix**.
-- 🔐 **Privilèges administrateur** pour l'analyse réseau.
-- 📡 **Connexion à un réseau local**.
-
----
-
-## 🔄 Installation
-
-### 1️⃣ Cloner le dépôt
-Pour cloner le dépôt Git et accéder au dossier du projet, exécutez les commandes suivantes :
-
-```bash
-git clone https://github.com/DL-maker/GhostSpy.git
-cd GhostSpy
-```
-
-### 2️⃣ Créer un environnement virtuel
-
-#### Sous Linux/Mac
-Pour créer et activer un environnement virtuel sous Linux/Mac, exécutez les commandes suivantes :
-
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-#### Sous Windows
-Pour créer et activer un environnement virtuel sous Windows, exécutez les commandes suivantes :
-
-```bash
-python -m venv venv
-.\venv\Scripts\activate
-```
-
-### 3️⃣ Installer les dépendances
-Pour installer les dépendances requises pour GhostSpy, exécutez la commande suivante :
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 🔍 Guide d'Utilisation
-
-### 🛠️ Configuration Initiale
-
-Pour configurer l'environnement d'analyse, utilisez cette commande :
-
-```bash
-ghostspy --setup
-```
-
-Pour vérifier les prérequis système, utilisez cette commande :
-
-```bash
-ghostspy --check-requirements
-```
-
----
-
-### 🕵️‍♂️ Commandes de Base
-
-#### 📡 Analyse Réseau
-Pour scanner le réseau local, utilisez cette commande :
-
-```bash
-ghostspy --scan-network
-```
-
-Pour afficher les détails d'un appareil, utilisez cette commande (remplacez `<IP>` par l'adresse IP de l'appareil) :
-
-```bash
-ghostspy --device-info <IP>
-```
-
-Pour générer un rapport d'analyse, utilisez cette commande :
-
-```bash
-ghostspy --generate-report
-```
-
-#### 🔎 Surveillance du Trafic
-Pour démarrer la capture de trafic, utilisez cette commande :
-
-```bash
-ghostspy --capture-traffic
-```
-
-Pour analyser les protocoles utilisés, utilisez cette commande :
-
-```bash
-ghostspy --analyze-protocols
-```
-
-Pour exporter les données collectées (formats disponibles : JSON, CSV), utilisez cette commande :
-
-```bash
-ghostspy --export-data <format>
-```
-
----
-
-## 📈 Bonnes Pratiques
-
-- 🏢 **Utilisez l'outil dans un environnement contrôlé** (laboratoire dédié).
-- 🖊️ **Documentez vos expériences et observations.**
-- ❤️ **Respectez la vie privée et les règles de sécurité.**
-- 🛡️ **N'utilisez que des données de test, jamais de données réelles.**
-
----
-
-## 🔒 Cadre Légal et Éthique
-
-- Cet outil est conçu **exclusivement pour l'apprentissage**.
-- Utilisez-le uniquement dans un **environnement de laboratoire contrôlé**.
-- Les tests sur des réseaux réels sont **interdits sans autorisation explicite**.
-- Respectez les lois en vigueur concernant la **protection des données** et la **vie privée**.
-
----
-
-
+## Support
+Pour toute question ou signalement de bug, veuillez utiliser la section des commentaires sur GitHub.
