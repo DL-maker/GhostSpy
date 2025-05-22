@@ -1,93 +1,101 @@
 ﻿# GhostSpy
 
-## Description générale
-*GhostSpy* est un outil d'administration conçu pour donner à un administrateur le contrôle complet sur un parc de PC. Il fonctionne dans un réseau local/VLAN d'entreprise ou domestique.
+## Description
+GhostSpy est un outil d'administration permettant aux administrateurs système de contrôler et surveiller un parc de PC au sein d'un réseau local d'entreprise. Il offre des fonctionnalités de surveillance et de contrôle à distance pour faciliter la gestion des ordinateurs.
+
 ## Fonctionnalités principales
 
-### Contrôle et surveillance (Windows uniquement)
-- **Visualisation d'écran à distance** - Permet à l'administrateur de voir l'écran des postes clients en temps réel
-- **Exécution de commandes à distance** - Autorise le lancement de commandes sur les postes clients
-- **Gel d'écran (Freeze/Unfreeze)** - Capacité à figer temporairement l'écran des utilisateurs
+### Pour tous les systèmes d'exploitation
+- **Exécution de commandes à distance** - Permet d'exécuter des commandes sur les machines distantes, compatible avec tous les OS.
+- **Surveillance des ressources système** - Collecte et envoie des informations sur l'utilisation du CPU, de la mémoire et du disque.
+- **Visualisation à distance des écrans** - Permet à l'administrateur de voir l'écran des ordinateurs surveillés.
 
-### Surveillance de sécurité (compatibilité variable selon OS)
-- **Analyse VirusTotal** - Analyse des fichiers suspects via l'API VirusTotal pour détecter les menaces potentielles
-- **Journalisation des activités** - Enregistrement des actions comme la création, modification et suppression de fichiers
-- **Détection de fichiers suspects** - Surveillance de la création et modification de fichiers potentiellement dangereux dans les dossiers sensibles
-- **Surveillance des ressources système** - Collecte et envoi d'informations sur l'utilisation du CPU, de la mémoire et du disque
+### Fonctionnalités configurables
+Ces fonctionnalités peuvent être activées ou désactivées selon les besoins :
+- **Analyse VirusTotal** - Analyse des fichiers suspects avec l'API VirusTotal pour détecter les menaces potentielles.
+- **Journalisation des activités** - Enregistrement des activités système comme la création, modification et suppression de fichiers.
+- **Détection de fichiers suspects** - Surveillance de la création et modification de fichiers potentiellement dangereux dans les dossiers sensibles.
 
-## Compatibilité des systèmes d'exploitation
+### Limitations selon l'OS
 
-| Fonctionnalité                  | Windows | Linux | macOS |
-| ------------------------------- | ------- | ----- | ----- |
-| Surveillance d'écran à distance | ✅       | ❌     | ✅     |
-| Exécution de commandes          | ✅       | ✅     | ✅     |
-| Freeze/Unfreeze                 | ✅       | ❌     | ❌     |
-| Journalisation côté client      | ✅       | ❌     | ❌     |
-| Autres fonctionnalités          | ✅       | ✅     | ✅     |
+| Fonctionnalité | Windows | Linux | macOS |
+|----------------|---------|-------|-------|
+| Exécution de commandes | ✅ | ✅ | ✅ |
+| Visualisation d'écran | ✅ | ✅ | ✅ |
+| Freeze/Unfreeze d'écran | ✅ | ❌ | ❌ |
+| Journalisation côté client | ✅ | ❌ | ❌ |
 
-___
-### ⚠️ **Note importante** : On ne prend aucune responsabilité si l'outil est utilisé à mauvais escient. ⚠️
-
-___
 ## Prérequis
-- Python 3.13 minimum
+- Python 3.13 ou supérieur
 
-### Bibliothèques nécessaires
+### Dépendances
 #### Pour le serveur (server.py)
 ```python
-flask>=2.3.0
-Pillow>=10.0.0
-customtkinter>=5.2.0
+from flask import Flask, json, jsonify, request, send_from_directory, Response
+import sqlite3
+from PIL import Image
+import time
+import os
+import threading
+from functools import wraps
 ```
 
 #### Pour le client (client.py)
 ```python
-requests>=2.31.0
-Pillow>=10.0.0
-psutil>=5.9.5
-watchdog>=3.0.0
-colorama>=0.4.6
-customtkinter>=5.2.0
+import requests
+import platform
+import time
+import subprocess
+import os
+from io import BytesIO
+from PIL import ImageGrab
+import psutil
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import datetime
+import hashlib
+import json
+import threading
+import logging
+import colorama
+import ctypes
+import customtkinter as ctk
 ```
 
-___
 ## Installation
-Des [fichiers exécutables](https://github.com/DL-maker/GhostSpy/tree/main/Executables) (.exe) sont disponibles pour le serveur et le client, ne nécessitant pas d'installation manuelle des dépendances.
+Des fichiers exécutables (.exe) sont disponibles pour le serveur et le client, sans installation supplémentaire requise.
 
-## Configuration et démarrage
+## Configuration et utilisation
 
-### Côté serveur (administrateur)
-1. Faire un copie du server.exe (qui ce trouve dans dossier ./Executable)
-2. Exécutez le fichier server.exe sur le PC administrateur ou le serveur dédié 
-3. Définissez un mot de passe pour accéder au panneau de configuration
+### Configuration du serveur
+1. Exécutez le fichier server.exe sur l'ordinateur de l'administrateur ou un serveur dédié
+2. Définissez un mot de passe pour accéder au panneau de configuration
+3. Le serveur est maintenant prêt à recevoir les connexions des clients
 
-### Côté client
-1. Faire un copie du server.exe (qui ce trouve dans dossier ./Executable)
-2. Mettre le fichier client.exe avec le requirements.txt dans le C:\Users\LD\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup ou Win + R => shell:startup
-3. Redemarer le PC
-4. Lors du démarrage, entrez l'adresse IP du serveur administrateur
+### Configuration des clients
+1. Installez et exécutez client.exe sur chaque ordinateur du parc à surveiller
+2. Lorsque demandé, saisissez l'adresse IP du serveur (ordinateur administrateur)
+3. Le client se connectera automatiquement au serveur
 
-## Utilisation quotidienne
-Une fois le serveur et les clients configurés, l'administrateur peut:
-- Surveiller les écrans des PC clients en temps réel
-- Exécuter des commandes à distance
-- Geler/dégeler les écrans des utilisateurs (Windows uniquement)
-- Surveiller les activités suspectes et les ressources système
-- Analyser les fichiers suspects avec VirusTotal
+### Utilisation quotidienne
+Une fois configuré, l'administrateur peut accéder au panneau de contrôle via le serveur pour surveiller et gérer tous les PC clients connectés.
 
 ## Considérations de sécurité
-- GhostSpy fonctionne uniquement au sein du réseau local/VLAN de l'entreprise
-- Aucune donnée n'est envoyée à des serveurs externes
-- L'utilisation de GhostSpy doit respecter les contrats de travail et les législations en vigueur
-- Nous ne sommes pas responsables d'une utilisation abusive de l'outil, du non-respect des contrats ou de la violation de la vie privée d'une personne
-
-## Limitations connues
-- Certaines fonctionnalités ne sont pas disponibles sur tous les systèmes d'exploitation (voir tableau de compatibilité)
+- GhostSpy fonctionne uniquement sur le réseau local/VLAN de l'entreprise et ne transmet pas de données à des serveurs externes
+- Les données collectées et les actions effectuées sont sous la responsabilité de l'administrateur et doivent respecter les contrats de travail et les législations en vigueur
+- Aucune responsabilité n'est assumée par les développeurs concernant l'utilisation abusive de l'outil
 
 ## Développements futurs
-- Amélioration de la compatibilité avec Linux et macOS pour toutes les fonctionnalités
-- Mise en place d'une page englobant tous les logs
+- Implémentation des fonctionnalités manquantes pour Linux et macOS
 
----
 ## Support
-Pour toute question ou signalement de bug, veuillez utiliser la section des commentaires sur GitHub.
+Pour toute question ou problème, veuillez utiliser les commentaires sur GitHub.
+
+## Licence
+Ce projet est sous licence GPL-3.0. Voir le fichier pour plus de détails.
+
+## Contributeurs
+* **DL-maker**
+* **BatyaBatkovich** (Lucas Daifi)
+* **Thisisnnn**
+* **prometeu1**
