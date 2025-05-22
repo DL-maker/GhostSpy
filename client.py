@@ -20,10 +20,10 @@ import customtkinter as ctk
 import re
 
 
-#def install_requirements(req_file="requirements.txt"):
-#    subprocess.run(["pip", "install", "-r", req_file])
+def install_requirements(req_file="requirements.txt"):
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
 
-#install_requirements()
+install_requirements()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(BASE_DIR, "port_activity.log")
@@ -997,64 +997,88 @@ def monitor_ports():
 def handle_pdf_report_command(command, client_id):
     try:
         # Si la commande contient une instruction de génération de PDF
-        if "import pdf_data" in command:
+        if "python pdf_data.py" in command or "import pdf_data" in command:
             print(colorama.Fore.CYAN + "⏳ Génération du rapport PDF en cours...")
             
-            # Exécuter la commande pour générer le PDF
-            result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Chemin du PDF de sortie
+            output_file = "data.pdf"
             
-            # Vérifier les chemins possibles du PDF
-            pdf_paths = ["data.pdf", "network_report.pdf"]
+            # Au lieu d'exécuter via subprocess, importer directement le module
+            try:
+                # Essayer d'importer depuis le répertoire courant
+                if os.path.exists("pdf_data.py"):
+                    print(colorama.Fore.GREEN + "✅ Utilisation du pdf_data.py dans le répertoire courant")
+                    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                    import pdf_data
+                    pdf_data_module = pdf_data
+                # Sinon, essayer depuis Executables
+                elif os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Executables", "pdf_data.py")):
+                    exec_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Executables")
+                    print(colorama.Fore.GREEN + f"✅ Utilisation du pdf_data.py depuis {exec_path}")
+                    sys.path.insert(0, exec_path)
+                    import pdf_data
+                    pdf_data_module = pdf_data
+                else:
+                    print(colorama.Fore.RED + "❌ Erreur: pdf_data.py introuvable")
+                    return False, "", "Fichier pdf_data.py introuvable"
+                
+                # Générer le PDF en appelant directement la fonction
+                print(colorama.Fore.CYAN + "⏳ Génération du PDF via import direct...")
+                success = pdf_data_module.create_pdf_with_data(output_file, pdf_data_module.data)
+                
+                if not success:
+                    print(colorama.Fore.RED + "❌ Échec de la génération du PDF via import direct")
+                    return False, "", "Échec de la génération du PDF"
+                    
+            except ImportError as e:
+                print(colorama.Fore.RED + f"❌ Erreur d'importation de pdf_data: {str(e)}")
+                return False, "", f"Erreur d'importation: {str(e)}"
+            except Exception as e:
+                print(colorama.Fore.RED + f"❌ Erreur lors de la génération du PDF: {str(e)}")
+                return False, "", f"Erreur lors de la génération: {str(e)}"
             
-            # Ajouter chemin absolu si mentionné dans la sortie
-            for line in result.stdout.splitlines():
-                if "PDF generated successfully:" in line or "PDF généré avec succès:" in line:
-                    path = line.split(":", 1)[1].strip()
-                    if os.path.exists(path):
-                        pdf_paths.insert(0, path)  # Priorité au chemin mentionné dans la sortie
-            
-            # Chercher le premier PDF existant dans les chemins possibles
-            pdf_path = None
-            for path in pdf_paths:
-                if os.path.exists(path):
-                    pdf_path = path
-                    print(colorama.Fore.GREEN + f"✅ PDF trouvé: {pdf_path}")
-                    break
-            
-            # Si un PDF est trouvé
-            if pdf_path:
+            # Vérifier que le PDF a été généré correctement
+            if os.path.exists(output_file):
+                pdf_path = os.path.abspath(output_file)
+                print(colorama.Fore.GREEN + f"✅ PDF généré avec succès: {pdf_path}")
+                
                 try:
                     # Envoyer le fichier au serveur
                     pdf_size = os.path.getsize(pdf_path)
                     print(colorama.Fore.GREEN + f"📁 Envoi du fichier PDF ({pdf_size} octets) au serveur...")
                     
-                    # Tester si le fichier est accessible
-                    with open(pdf_path, 'rb') as test_file:
-                        # Si on peut le lire, continuer
-                        pass
+                    # Vérifier l'URL du serveur et l'ID client
+                    print(colorama.Fore.CYAN + f"⏳ URL serveur: {server_url}, ID client: {client_id}")
                     
+                    url = f"{server_url}/client/{client_id}/upload_pdf"
+                    print(colorama.Fore.CYAN + f"⏳ URL d'envoi: {url}")
+                    
+                    # Envoyer le fichier
                     with open(pdf_path, 'rb') as pdf_file:
                         files = {'pdf_file': (os.path.basename(pdf_path), pdf_file, 'application/pdf')}
+                        
+                        # Augmenter le timeout et ajouter des détails de débogage
+                        print(colorama.Fore.CYAN + "⏳ Envoi de la requête POST...")
                         response = requests.post(
-                            f'{server_url}/client/{client_id}/upload_pdf',
+                            url,
                             files=files,
-                            timeout=30
+                            timeout=60  # Augmenter le timeout à 60 secondes
                         )
-                    
-                    if response.status_code == 200:
-                        print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur")
-                        return True, "Rapport PDF généré et envoyé avec succès", ""
-                    else:
-                        print(colorama.Fore.YELLOW + f"⚠️ Le serveur a retourné une erreur lors de l'envoi du PDF: {response.status_code}")
-                        return True, f"PDF généré mais erreur d'envoi ({response.status_code})", ""
+                        print(colorama.Fore.CYAN + f"⏳ Statut de la réponse: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print(colorama.Fore.GREEN + "✅ Rapport PDF envoyé avec succès au serveur")
+                            return True, "Rapport PDF généré et envoyé avec succès", ""
+                        else:
+                            print(colorama.Fore.YELLOW + f"⚠️ Le serveur a retourné une erreur: {response.status_code}")
+                            print(colorama.Fore.YELLOW + f"⚠️ Détails de l'erreur: {response.text}")
+                            return True, f"PDF généré mais erreur d'envoi ({response.status_code}): {response.text}", ""
                 except Exception as e:
                     print(colorama.Fore.YELLOW + f"⚠️ Erreur lors de l'envoi du PDF: {str(e)}")
                     return True, f"PDF généré mais erreur d'envoi: {str(e)}", ""
             else:
-                print(colorama.Fore.RED + "❌ Erreur : aucun fichier PDF n'a été trouvé après l'exécution de la commande")
-                print(colorama.Fore.RED + f"Sortie: {result.stdout}")
-                print(colorama.Fore.RED + f"Erreur: {result.stderr}")
-                return False, "", f"Aucun PDF trouvé. Erreur: {result.stderr}"
+                print(colorama.Fore.RED + f"❌ Le fichier PDF n'a pas été trouvé à l'emplacement attendu: {output_file}")
+                return False, "", "Le fichier PDF n'a pas été généré correctement"
         
         # Si ce n'est pas une commande de génération de PDF, retourner False sans message d'erreur
         return False, "", ""

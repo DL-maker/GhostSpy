@@ -3,3 +3,5 @@ config.json
 *.pdf
 __pycache__/
 *.json
+venv
+.venv
