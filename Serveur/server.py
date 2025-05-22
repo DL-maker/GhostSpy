@@ -14,11 +14,6 @@ import sys
 import os
 
 
-def install_requirements(req_file="requirements.txt"):
-    subprocess.run(["pip", "install", "-r", req_file])
-
-install_requirements()
-
 app = Flask(__name__)
 
 CONFIG_FILE = 'config.json'
