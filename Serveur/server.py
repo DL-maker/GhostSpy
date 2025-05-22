@@ -15,7 +15,7 @@ import os
 
 
 def install_requirements(req_file="requirements.txt"):
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
+    subprocess.run(["pip", "install", "-r", req_file])
 
 install_requirements()
 

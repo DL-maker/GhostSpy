@@ -57,12 +57,15 @@ Des [fichiers exécutables](https://github.com/DL-maker/GhostSpy/tree/main/Execu
 ## Configuration et démarrage
 
 ### Côté serveur (administrateur)
-1. Exécutez le fichier server.exe sur le PC administrateur ou le serveur dédié
-2. Définissez un mot de passe pour accéder au panneau de configuration
+1. Faire un copie du server.exe (qui ce trouve dans dossier ./Executable)
+2. Exécutez le fichier server.exe sur le PC administrateur ou le serveur dédié 
+3. Définissez un mot de passe pour accéder au panneau de configuration
 
 ### Côté client
-1. Exécutez le fichier client.exe sur chaque PC du parc à surveiller
-2. Lors du démarrage, entrez l'adresse IP du serveur administrateur
+1. Faire un copie du server.exe (qui ce trouve dans dossier ./Executable)
+2. Mettre le fichier client.exe avec le requirements.txt dans le C:\Users\LD\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup ou Win + R => shell:startup
+3. Redemarer le PC
+4. Lors du démarrage, entrez l'adresse IP du serveur administrateur
 
 ## Utilisation quotidienne
 Une fois le serveur et les clients configurés, l'administrateur peut:

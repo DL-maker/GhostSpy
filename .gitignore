@@ -2,3 +2,4 @@ config.json
 *.log
 *.pdf
 __pycache__/
+*.json

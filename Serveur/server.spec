@@ -5,8 +5,8 @@ a = Analysis(
     ['server.py'],
     pathex=[],
     binaries=[],
-    datas=[('SpyGhost_icon.ico', '.'), ('frontend/*.*', 'frontend'), ('schema.sql', '.')],
-    hiddenimports=[],
+    datas=[('frontend', 'frontend'), ('schema.sql', '.')],
+    hiddenimports=['pyautogui'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['Icon.ico'],
+    icon=['SpyGhost_icon.ico'],
 )
