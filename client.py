@@ -17,16 +17,38 @@ import colorama  # Add colorama for colored console output
 import ctypes    # Import ctypes for direct Windows API access
 from datetime import datetime as dt
 import customtkinter as ctk
-import re
 
+# Déterminer le chemin absolu de l'exécutable
+if getattr(sys, 'frozen', False):
+    # Nous sommes dans un exécutable PyInstaller
+    EXECUTABLE_DIR = os.path.dirname(sys.executable)
+else:
+    # Nous sommes dans un script Python normal
+    EXECUTABLE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def install_requirements(req_file="requirements.txt"):
-    subprocess.run([sys.executable, "-m", "pip", "install", "-r", req_file])
+# Dossier parent pour stocker tous les fichiers générés
+BASE_DIR = os.path.abspath(os.path.join(EXECUTABLE_DIR, ".."))
+print(f"Dossier de base: {BASE_DIR}")
 
-install_requirements()
+# S'assurer que le dossier de base existe
+if not os.path.exists(BASE_DIR):
+    os.makedirs(BASE_DIR, exist_ok=True)
+    print(f"Dossier de base créé: {BASE_DIR}")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Configurer tous les chemins de fichiers avec le dossier BASE_DIR
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+LOG_FILE = os.path.join(BASE_DIR, "client_vt.log")
 LOG_PATH = os.path.join(BASE_DIR, "port_activity.log")
+INTERNET_USAGE_LOG = os.path.join(BASE_DIR, "internet_usage.log")
+PDF_OUTPUT_FILE = os.path.join(BASE_DIR, "data.pdf")
+
+# Afficher les chemins configurés pour le débogage
+print(f"📂 Chemins configurés:")
+print(f"  - Exécutable: {EXECUTABLE_DIR}")
+print(f"  - BASE_DIR: {BASE_DIR}")
+print(f"  - CONFIG_FILE: {CONFIG_FILE}")
+print(f"  - LOG_FILE: {LOG_FILE}")
+print(f"  - LOG_PATH: {LOG_PATH}")
 
 SERVICE_DICT = {
     21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 69: "TFTP",
@@ -50,10 +72,8 @@ seen_connections = set()
 colorama.init(autoreset=True)
 
 # Configuration
-CONFIG_FILE = 'config.json'
 API_KEY = "API"  # Remplacez par votre clé API VirusTotal
 VT_BASE_URL = "https://www.virustotal.com/api/v3"
-LOG_FILE = "client_vt.log"
 
 # Paramètres des fonctionnalités (désactivées par défaut)
 VIRUSTOTAL_ENABLED = False
@@ -91,19 +111,35 @@ MONITORED_EXTENSIONS = [
 VT_SCAN_FOLDERS = ['Downloads']
 
 def load_server_url():
-    # charge l'url du serveur
+    # Utiliser le chemin absolu pour le fichier de configuration
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                return config.get('server_url', '')
+                url = config.get('server_url', '')
+                if url:
+                    print(colorama.Fore.GREEN + f"✅ Configuration chargée depuis {CONFIG_FILE}")
+                    return url
         except json.JSONDecodeError:
-            print("⚠️ Le fichier de configuration est vide ou corrompu. Réinitialisation.")
+            print(colorama.Fore.YELLOW + "⚠️ Fichier de configuration corrompu. Réinitialisation.")
+        except Exception as e:
+            print(colorama.Fore.YELLOW + f"⚠️ Erreur lors du chargement de la configuration: {str(e)}")
+    else:
+        print(colorama.Fore.YELLOW + f"⚠️ Fichier de configuration non trouvé: {CONFIG_FILE}")
     return ""
 
 def save_server_url(server_url):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump({'server_url': server_url}, f)
+    try:
+        # Créer le répertoire parent si nécessaire
+        os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+        
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump({'server_url': server_url}, f)
+            print(colorama.Fore.GREEN + f"✅ Configuration sauvegardée dans {CONFIG_FILE}")
+        return True
+    except Exception as e:
+        print(colorama.Fore.RED + f"❌ Erreur lors de la sauvegarde de la configuration: {str(e)}")
+        return False
 
 def try_post(url, json_data):
     try:
@@ -933,7 +969,9 @@ def log_usage(sent_mb, recv_mb):
     total_mb = sent_mb + recv_mb
     timestamp = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"[{timestamp}] Sent: {sent_mb:.2f} MB, Received: {recv_mb:.2f} MB, Total: {total_mb:.2f} MB\n"
-    with open("internet_usage.log", "a", encoding="utf-8") as f:
+    
+    # Utiliser le chemin absolu défini globalement
+    with open(INTERNET_USAGE_LOG, "a", encoding="utf-8") as f:
         f.write(log_entry)
 
 def log_in_file():
@@ -1000,8 +1038,8 @@ def handle_pdf_report_command(command, client_id):
         if "python pdf_data.py" in command or "import pdf_data" in command:
             print(colorama.Fore.CYAN + "⏳ Génération du rapport PDF en cours...")
             
-            # Chemin du PDF de sortie
-            output_file = "data.pdf"
+            # Utiliser le chemin absolu pour le PDF de sortie
+            output_file = PDF_OUTPUT_FILE
             
             # Au lieu d'exécuter via subprocess, importer directement le module
             try:
@@ -1039,7 +1077,7 @@ def handle_pdf_report_command(command, client_id):
             
             # Vérifier que le PDF a été généré correctement
             if os.path.exists(output_file):
-                pdf_path = os.path.abspath(output_file)
+                pdf_path = output_file  # Déjà un chemin absolu
                 print(colorama.Fore.GREEN + f"✅ PDF généré avec succès: {pdf_path}")
                 
                 try:
@@ -1276,7 +1314,25 @@ def get_installed_windows_apps():
         
     return installed_apps
 
+def ensure_log_directories():
+    """Crée les dossiers nécessaires pour les fichiers de logs"""
+    try:
+        # Créer le dossier logs s'il n'existe pas
+        logs_dir = os.path.join(BASE_DIR, "logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+            print(f"Dossier de logs créé: {logs_dir}")
+        
+        return True
+    except Exception as e:
+        print(f"Erreur lors de la création des dossiers de logs: {e}")
+        return False
+
+# Appeler cette fonction au démarrage
 if __name__ == "__main__":
+    # Assurer que les dossiers de logs existent
+    ensure_log_directories()
+    
     client_logs = ClientLogs()  # Initialize client logs instance
     # Start logging threads
     threading.Thread(target=log_in_file, daemon=True).start()

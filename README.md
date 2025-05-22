@@ -73,9 +73,10 @@ Des fichiers exécutables (.exe) sont disponibles pour le serveur et le client, 
 3. Le serveur est maintenant prêt à recevoir les connexions des clients
 
 ### Configuration des clients
-1. Installez et exécutez client.exe sur chaque ordinateur du parc à surveiller
-2. Lorsque demandé, saisissez l'adresse IP du serveur (ordinateur administrateur)
-3. Le client se connectera automatiquement au serveur
+1. Télécharger le client.exe sur chaque ordinateur du parc à surveiller dans le fichier C:\Users\LD\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup (Win + r puis écrire `shell:startup` pour avoir accès)
+2. Puis exécuter en mode ADMINISTRATEUR 
+3. Lorsque demandé, saisissez l'adresse IP du serveur (ordinateur administrateur)
+4. Le client se connectera automatiquement au serveur
 
 ### Utilisation quotidienne
 Une fois configuré, l'administrateur peut accéder au panneau de contrôle via le serveur pour surveiller et gérer tous les PC clients connectés.

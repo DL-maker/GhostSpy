@@ -5,3 +5,4 @@ __pycache__/
 *.json
 venv
 .venv
+Serveur/__pycache__/
