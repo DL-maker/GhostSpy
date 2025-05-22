@@ -5,3 +5,5 @@ __pycache__/
 *.json
 venv
 .venv
+build/
+dist/
