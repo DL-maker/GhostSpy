@@ -5,7 +5,7 @@ a = Analysis(
     ['server.py'],
     pathex=[],
     binaries=[],
-    datas=[('frontend', 'frontend'), ('schema.sql', '.')],
+    datas=[('frontend', 'frontend'), ('SpyGhost_icon.ico', '.')],
     hiddenimports=['pyautogui'],
     hookspath=[],
     hooksconfig={},

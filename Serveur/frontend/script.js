@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let lastCommandIdSent = null;
     let pdfExists = false;
     
+    // Fonction pour vérifier si l'OS est Windows
+    function isWindows(osType) {
+        return osType && osType.toLowerCase().includes('windows');
+    }
 
     function fetchClients() {
         fetch('/clients')
@@ -39,9 +43,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 clients.forEach(client => {
                     const clientBlock = document.createElement('div');
                     clientBlock.className = 'client-block';
+                    
+                    // Vérifier si c'est Windows et ajouter l'icône appropriée
+                    // Utiliser le chemin correct vers windows.png
+                    const osDisplay = isWindows(client.os_type) 
+                        ? `<img src="windows.png" alt="Windows" class="os-icon" width="25" height="25"/> ${client.os_type}`
+                        : client.os_type;
+                    
                     clientBlock.innerHTML = `
-                        <h3><img src="${client.os_type}.png" alt="OS_icon" width="25" height="25"/>${client.name}</h3>
-                        <p>OS: ${client.os_type}</p>
+                        <h3>${client.name}</h3>
+                        <p>OS: ${osDisplay}</p>
                         <p>Connecté: ${client.is_connected ? 'Oui' : 'Non'}</p>
                         <button onclick="showDevicePage(${client.id}, '${client.name}')">Surveiller</button>
                         <button onclick="disconnectClient(${client.id})">Déconnecter</button>
@@ -52,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         disconnectedClients++;
                     }
-                os_computer = client.os_type;
+                    os_computer = client.os_type;
                 });
                 connectedCountSpan.textContent = connectedClients;
                 disconnectedCountSpan.textContent = disconnectedClients;

